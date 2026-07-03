@@ -3,6 +3,10 @@ defmodule CheironTakeHome.LLM do
 
   @url "https://api.openai.com/v1/chat/completions"
 
+  @viz_types ~w(bar_chart time_series pie_chart table single_value)
+
+  def viz_types, do: @viz_types
+
   def interpret(query) do
     http_client().request(
       url: @url,
@@ -46,7 +50,10 @@ defmodule CheironTakeHome.LLM do
   defp api_key, do: System.get_env("OPENAI_API_KEY")
 
   defp system_prompt do
+    types = Enum.join(@viz_types, ", ")
+
     "You interpret natural language questions about clinical trials into structured query plans. " <>
-      "Return JSON with: viz_type, query_params, group_by (optional), time_granularity (optional)."
+      "Return JSON with: viz_type, query_params, group_by (optional), time_granularity (optional). " <>
+      "viz_type must be exactly one of: #{types}."
   end
 end
