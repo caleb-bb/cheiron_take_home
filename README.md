@@ -1,4 +1,4 @@
-# Queries and outputs
+# Queries and outputs (AI generated)
 
 ## Lung cancer trials by phase
 
@@ -155,11 +155,146 @@ CheironTakeHome.Orchestrator.query("When did CRISPR clinical trials start rampin
 }
 ```
 
+# Setup (AI generated)
 
+## Prerequisites
 
-# Development Log
+- Erlang/OTP 26+
+- Elixir 1.15+
+- An OpenAI API key with access to `gpt-4o`
 
-(This was all typed by hand with the exception of the response fields, which were copy-pasted from a Claude Code response. I did, however, *tak to* Claude Code a lot while writing this.)
+## Install and run
+
+```bash
+mix setup
+export OPENAI_API_KEY="sk-..."
+mix phx.server
+```
+
+The server starts on `http://localhost:4000`. You can also query directly from an IEx session:
+
+```bash
+iex -S mix phx.server
+iex> CheironTakeHome.Orchestrator.query("How many lung cancer trials are in each phase?")
+```
+
+## Configuration
+
+| Variable | Required | Description |
+|---|---|---|
+| `OPENAI_API_KEY` | Yes | OpenAI API key for query interpretation |
+| `PORT` | No | HTTP port (default: 4000) |
+
+# Request/Response Schema (AI generated)
+
+## Request
+
+`POST /api/query`
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `query` | string | Yes | Natural language question about clinical trials. Must be non-empty. |
+
+```json
+{"query": "How many lung cancer trials are in each phase?"}
+```
+
+## Response (success)
+
+`200 OK`
+
+The response wraps a visualization specification under a `visualization` key:
+
+```json
+{
+  "visualization": {
+    "type": "...",
+    "title": "...",
+    "encoding": { ... },
+    "data": [ ... ],
+    "meta": { ... },
+    "sort": { ... }
+  }
+}
+```
+
+### Visualization spec fields
+
+| Field | Type | Present | Description |
+|---|---|---|---|
+| `type` | `"bar_chart"` or `"time_series"` | Always | Visualization type |
+| `title` | string | Always | Human-readable title incorporating the search subject |
+| `encoding` | object | Always | Maps data fields to visual channels (see below) |
+| `data` | array of objects | Always | Data points to render; keys match `encoding` field names |
+| `meta` | object | Always | Contains `source` (always `"clinicaltrials.gov"`) and `total_studies` |
+| `sort` | object | Bar charts only | Contains `field` and `order` (`"descending"`) |
+
+### Encoding channels
+
+Each channel in `encoding` (keyed by `x`, `y`) has:
+
+| Field | Type | Description |
+|---|---|---|
+| `field` | string | Key name in each `data` object |
+| `label` | string | Human-readable axis label |
+| `type` | `"categorical"`, `"quantitative"`, or `"temporal"` | Data type for rendering |
+| `granularity` | `"year"`, `"month"`, or `"quarter"` | Time series x-axis only |
+
+### Bar chart data points
+
+Each object in `data` has a categorical field (the `group_by` value, e.g. `"phase"` or `"status"`) and `"trial_count"` (integer).
+
+### Time series data points
+
+Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`) and `"count"` (integer).
+
+## Response (error)
+
+`422 Unprocessable Entity` or `400 Bad Request`
+
+```json
+{"error": "No data matched the query — try broadening your search terms"}
+```
+
+# Design Decisions (AI generated)
+
+**Pipeline architecture.** The system is a linear pipeline: LLM interprets the query into a structured plan, ClinicalTrials.gov returns studies, and the Munger transforms raw data into a viz spec. Each step is a separate module with its own HTTP boundary, making them independently testable and replaceable.
+
+**LLM as a classifier, not a data source.** The LLM's only job is to convert natural language into structured query parameters and a viz type. It never sees trial data and cannot hallucinate data points. All data comes directly from ClinicalTrials.gov.
+
+**Deterministic specs.** The viz spec is designed so that two independent frontend implementations would render the same chart from the same spec. Encoding channels declare field names, types, and labels; the frontend doesn't need to guess what goes on which axis.
+
+**Property-based testing.** The Munger is tested with StreamData property tests that enforce structural invariants: every output label traces to input data, counts sum correctly, encoding fields exist in data points, and type/shape constraints hold. These were mutation-tested against 10 injected bugs, all caught.
+
+**Constrained LLM output.** The system prompt explicitly enumerates valid values for `viz_type`, `group_by`, `query_params` keys, and `time_granularity`. The orchestrator and munger validate these downstream as a safety net, returning typed errors rather than crashing on unexpected LLM output.
+
+# Limitations and Future Work (AI generated)
+
+**Only two viz types.** The assignment suggests network graphs, scatter plots, and histograms. The current architecture supports adding these — new Munger function heads, new `extract_group_values` clauses, and updated LLM prompt constraints — but only bar charts and time series are implemented.
+
+**No deep citations.** Data points don't trace back to individual `nct_id`s or text excerpts. The data is there in the API response (each study has `nctId` and `briefTitle`), but the Munger aggregates it away. Adding citations would mean carrying study references through the frequency counting.
+
+**No structured input fields.** The assignment suggests optional fields like `drug_name`, `condition`, `trial_phase`. These would bypass LLM interpretation for known parameters, reducing latency and improving reliability. The orchestrator could merge user-supplied fields with LLM-inferred ones.
+
+**Single API page.** Time series queries fetch 100 studies; bar charts fetch 10. For conditions with thousands of trials (e.g., "cancer"), this is a sample, not a census. Pagination support would give more accurate counts.
+
+**No retry/validation on LLM output.** If the LLM returns a malformed plan (wrong `viz_type`, missing `query_params`), the system errors. A production system would validate the plan and retry with a corrective prompt.
+
+**No frontend.** The spec is designed to be renderable by any charting library (D3, Vega-Lite, Recharts), but no demo frontend is included.
+
+# AI Tools (AI generated)
+
+**Claude Code** was used extensively for implementation. The development process was: plan architecture and iterations by hand, write prompts describing what to build, feed prompts to Claude Code, test results in IEx, and iterate. The prompts used are preserved in `/claude_code_prompts`.
+
+**What was deliberate:** Architecture, iteration planning, module boundaries, test strategy (property-based tests with mutation testing), prompt engineering for the LLM system prompt, and all design decisions documented above.
+
+**What was generated and adapted:** Module boilerplate, test scaffolding, HTTP client setup, and incremental bug fixes surfaced through IEx testing. Each generated change was tested in-terminal before being accepted.
+
+**Validation:** Property-based tests with StreamData enforce structural invariants on Munger output. Mutation testing (10 injected bugs, all caught) validated that the property tests are meaningful. Orchestrator tests use Mox to mock HTTP boundaries. Manual IEx testing against the live ClinicalTrials.gov API caught issues that unit tests missed (wrong LLM parameter names, case sensitivity, empty results).
+
+# Development Log (done by hand)
+
+(This was typed by hand with the exception of the sections marked as `(AI generated)`. I did, however, *tak to* Claude Code a lot while writing this.)
 
 ## Approach
 ### Thu Jul  2 17:56:01 2026
