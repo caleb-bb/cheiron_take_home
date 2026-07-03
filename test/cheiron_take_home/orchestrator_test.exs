@@ -1169,5 +1169,74 @@ defmodule CheironTakeHome.OrchestratorTest do
 
       assert viz_spec.type == "bar_chart"
     end
+
+    test "synonym 'phase breakdown' skips LLM" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn opts ->
+        assert opts[:url] == "https://clinicaltrials.gov/api/v2/studies"
+
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT001",
+                     "briefTitle" => "Trial A"
+                   },
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:ok, viz_spec} =
+               CheironTakeHome.Orchestrator.query("cancer phase breakdown", %{
+                 "condition" => "cancer"
+               })
+
+      assert viz_spec.type == "bar_chart"
+      assert viz_spec.encoding.x.field == "phase"
+    end
+
+    test "synonym 'trend' skips LLM" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn opts ->
+        assert opts[:url] == "https://clinicaltrials.gov/api/v2/studies"
+
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT001",
+                     "briefTitle" => "Trial A"
+                   },
+                   "statusModule" => %{
+                     "overallStatus" => "COMPLETED",
+                     "startDateStruct" => %{"date" => "2022-03-15"}
+                   }
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:ok, viz_spec} =
+               CheironTakeHome.Orchestrator.query("Aspirin trend", %{
+                 "drug_name" => "Aspirin"
+               })
+
+      assert viz_spec.type == "time_series"
+    end
   end
 end
