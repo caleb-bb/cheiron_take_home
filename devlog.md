@@ -193,4 +193,34 @@ These are fairly simple Claude Code prompts but they serve to detect anything ve
 
 Smoke tests for orchestrator and make it pass. I said earlier I could wait on integration tests, but these are pretty simple (hence "smoke tests"). Ideally, these are just here to make sure that the orchestrator calls the functions it's supposed to call in the order it's supposed to call then and returns an error when each step fails. These integration tests, in a real app, would become more complex as the app matures because these pipelines can fail at multiple levels.
 
-Minor changes made to the munger here. `granularity` already occurs in the x-axis of the maps so we don't need it in metadata. `date_field` added to metadata.
+Minor changes made to the munger here. `granularity` already occurs in the x-axis of the maps so we don't need it in metadata. `date_field` added to metadata. All tests pass.
+
+### [Prompt 8](claude_code_prompts/prompt_8.md)
+
+I got this when trying to test via `iex` REPL:
+
+```elixir
+iex(1)> CheironTakeHome.Orchestrator.query("What causes lung cancer?")
+** (FunctionClauseError) no function clause matching in CheironTakeHome.Orchestrator.to_viz_type/1    
+    
+    The following arguments were given to CheironTakeHome.Orchestrator.to_viz_type/1:
+    
+        # 1
+        "text_summary"
+    
+    Attempted function clauses (showing 2 out of 2):
+    
+        defp to_viz_type("bar_chart")
+        defp to_viz_type("time_series")
+    
+    (cheiron_take_home 0.1.0) lib/cheiron_take_home/orchestrator.ex:43: CheironTakeHome.Orchestrator.to_viz_type/1
+    (cheiron_take_home 0.1.0) lib/cheiron_take_home/orchestrator.ex:36: CheironTakeHome.Orchestrator.split_query_plan/1
+    (cheiron_take_home 0.1.0) lib/cheiron_take_home/orchestrator.ex:6: CheironTakeHome.Orchestrator.query/1
+    iex:1: (file)
+```
+
+Claude Code surfaced two things:
+
+1. The orchestrator has no fallback for unrecognized viz types — it crashes instead of returning an {:error, ...} tuple.
+2. The LLM's system prompt doesn't tell it which viz_type values are valid, so it can return anything.
+
