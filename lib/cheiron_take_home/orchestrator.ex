@@ -48,8 +48,7 @@ defmodule CheironTakeHome.Orchestrator do
     "query_intr" => :query_intr,
     "query_term" => :query_term,
     "filter_phase" => :filter_phase,
-    "filter_status" => :filter_status,
-    "page_size" => :page_size
+    "filter_status" => :filter_status
   }
 
   defp split_query_plan(query_plan) do

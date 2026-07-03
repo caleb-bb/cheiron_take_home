@@ -3,11 +3,32 @@ defmodule CheironTakeHome.ClinicalTrials do
 
   @url "https://clinicaltrials.gov/api/v2/studies"
 
-  def search(params) do
+  @max_pages 5
+
+  def search(params), do: fetch_pages(build_params(params), [], @max_pages)
+
+  defp fetch_pages(_params, acc, 0), do: {:ok, Enum.reverse(acc)}
+
+  defp fetch_pages(params, acc, remaining) do
+    case do_request(params) do
+      {:ok, studies, next_token} ->
+        new_acc = Enum.reverse(studies) ++ acc
+
+        case next_token do
+          nil -> {:ok, Enum.reverse(new_acc)}
+          token -> fetch_pages(Map.put(params, "pageToken", token), new_acc, remaining - 1)
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp do_request(params) do
     http_client().request(
       url: @url,
       method: :get,
-      params: build_params(params)
+      params: params
     )
     |> handle_response()
   end
@@ -32,8 +53,12 @@ defmodule CheironTakeHome.ClinicalTrials do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
-  defp handle_response({:ok, %{status: 200, body: body}}), do: {:ok, body["studies"]}
-  defp handle_response({:ok, %{status: status, body: body}}), do: {:error, %{reason: "API returned #{status}: #{inspect(body)}"}}
+  defp handle_response({:ok, %{status: 200, body: body}}),
+    do: {:ok, body["studies"] || [], body["nextPageToken"]}
+
+  defp handle_response({:ok, %{status: status, body: body}}),
+    do: {:error, %{reason: "API returned #{status}: #{inspect(body)}"}}
+
   defp handle_response({:error, reason}), do: {:error, reason}
 
   defp http_client, do: Application.get_env(:cheiron_take_home, :http_client)

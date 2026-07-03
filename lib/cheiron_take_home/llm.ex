@@ -104,7 +104,6 @@ defmodule CheironTakeHome.LLM do
     - "query_term": general search terms for anything not covered by the above
     - "filter_phase": trial phase filter (e.g., "PHASE1", "PHASE2", "PHASE3")
     - "filter_status": recruitment status filter (e.g., "RECRUITING", "COMPLETED")
-    - "page_size": number of results to return (default 10, max 1000)
     You MUST include at least one of query_cond, query_intr, or query_term so the search is not empty.
 
     When viz_type is "bar_chart", group_by MUST be one of: "phase", "status". No other values are allowed.
