@@ -19,6 +19,10 @@ defmodule CheironTakeHomeWeb.QueryController do
     |> json(%{error: "Missing or empty \"query\" field"})
   end
 
+  defp format_error(:no_search_terms), do: "Could not extract search terms from the query — try being more specific about a condition or treatment"
+  defp format_error(:empty_result), do: "No data matched the query — try broadening your search terms"
+  defp format_error({:unsupported_group_by, value, supported}),
+    do: "Unsupported grouping \"#{value}\". Supported: #{Enum.join(supported, ", ")}"
   defp format_error({:unexpected, _}), do: "Unexpected response from upstream service"
   defp format_error(%{reason: reason}), do: "Upstream error: #{inspect(reason)}"
   defp format_error(reason), do: inspect(reason)

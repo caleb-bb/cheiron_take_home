@@ -129,6 +129,30 @@ defmodule CheironTakeHome.OrchestratorTest do
       assert {:error, _reason} = CheironTakeHome.Orchestrator.query("diabetes trials by phase")
     end
 
+    test "returns error when LLM produces no recognized search terms" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "bar_chart",
+                    "query_params" => %{"condition" => "cervical cancer"},
+                    "group_by" => "phase"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      assert {:error, :no_search_terms} = CheironTakeHome.Orchestrator.query("cervical cancer trials")
+    end
+
     test "returns error on empty query" do
       assert {:error, _reason} = CheironTakeHome.Orchestrator.query("")
     end

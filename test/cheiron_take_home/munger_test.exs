@@ -191,6 +191,63 @@ defmodule CheironTakeHome.MungerTest do
     end
   end
 
+  # --- Bar Chart Error Cases ---
+
+  describe "build/2 with bar_chart error cases" do
+    test "returns error for unsupported group_by value" do
+      assert {:error, {:unsupported_group_by, "cause", _supported}} =
+               CheironTakeHome.Munger.build([], %{viz_type: :bar_chart, group_by: "cause"})
+    end
+
+    test "returns error when studies produce empty data" do
+      studies_without_phases = [
+        %{"protocolSection" => %{"designModule" => %{}}},
+        %{"protocolSection" => %{"designModule" => %{"phases" => []}}}
+      ]
+
+      assert {:error, :empty_result} =
+               CheironTakeHome.Munger.build(studies_without_phases, %{viz_type: :bar_chart, group_by: "phase"})
+    end
+  end
+
+  # --- Bar Chart by Status ---
+
+  describe "build/2 with bar_chart viz_type grouped by status" do
+    property "every status in the output appears in at least one input study" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "status"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_statuses =
+          studies
+          |> Enum.map(fn s ->
+            get_in(s, ["protocolSection", "statusModule", "overallStatus"])
+          end)
+          |> Enum.reject(&is_nil/1)
+          |> MapSet.new()
+
+        output_statuses =
+          viz_spec.data
+          |> Enum.map(& &1["status"])
+          |> MapSet.new()
+
+        assert MapSet.subset?(output_statuses, input_statuses)
+      end
+    end
+
+    property "output has valid shape and bar chart structure" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "status"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        assert_viz_spec_shape(viz_spec)
+        assert_encoding_channels(viz_spec)
+        assert_encoding_data_coherence(viz_spec)
+        assert_bar_chart_shape(viz_spec)
+      end
+    end
+  end
+
   # --- Time Series Properties ---
 
   describe "build/2 with time_series viz_type" do

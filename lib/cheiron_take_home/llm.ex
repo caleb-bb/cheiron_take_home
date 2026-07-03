@@ -53,6 +53,20 @@ defmodule CheironTakeHome.LLM do
     viz_type MUST be exactly one of these two values: "bar_chart" or "time_series". No other values are allowed.
     Choose "bar_chart" for comparisons, distributions, or categorical breakdowns.
     Choose "time_series" for trends over time or temporal patterns.
+
+    query_params is an object whose keys MUST come from this list only:
+    - "query_cond": condition or disease (e.g., "lung cancer", "diabetes"). Use this for disease/condition searches.
+    - "query_intr": intervention or treatment (e.g., "pembrolizumab", "radiation therapy")
+    - "query_term": general search terms for anything not covered by the above
+    - "filter_phase": trial phase filter (e.g., "PHASE1", "PHASE2", "PHASE3")
+    - "filter_status": recruitment status filter (e.g., "RECRUITING", "COMPLETED")
+    - "page_size": number of results to return (default 10, max 1000)
+    You MUST include at least one of query_cond, query_intr, or query_term so the search is not empty.
+
+    When viz_type is "bar_chart", group_by MUST be one of: "phase", "status". No other values are allowed.
+    - "phase" groups trials by their clinical phase (e.g., PHASE1, PHASE2, PHASE3)
+    - "status" groups trials by their recruitment status (e.g., RECRUITING, COMPLETED)
+    Default to "phase" when the user's question does not clearly map to one of these fields.
     """
   end
 end
