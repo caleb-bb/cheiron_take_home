@@ -1,3 +1,39 @@
+# Claude Code Prompt: Failing Property Tests for the Munger
+
+## Context
+The Phoenix project `cheiron_take_home` has working API wrapper modules and tests for `CheironTakeHome.LLM` and `CheironTakeHome.ClinicalTrials`. The next module is `CheironTakeHome.Munger`, which is currently an empty stub.
+
+The munger transforms raw ClinicalTrials.gov API data plus a visualization intent into a structured visualization spec. Its public API is:
+
+```elixir
+Munger.build(raw_data, viz_intent)
+```
+
+Where:
+- `raw_data` is a list of study maps as returned by the ClinicalTrials.gov API (nested maps with `protocolSection`, etc.)
+- `viz_intent` is a map like `%{viz_type: :bar_chart, group_by: "phase"}` or `%{viz_type: :time_series, time_granularity: :year}`
+
+It returns `{:ok, viz_spec}` where `viz_spec` is a map with keys: `type`, `title`, `encoding`, `data`, `meta`.
+
+## Task: Write failing property-based tests for the Munger using StreamData.
+
+### Step 0: Assess
+Read this entire prompt. Confirm you understand by listing your steps. Do not begin until you've confirmed.
+
+### Step 1: Write the test file
+
+File: `test/cheiron_take_home/munger_test.exs`
+
+This file must:
+1. `use ExUnit.Case, async: true`
+2. `use ExUnitProperties` (from StreamData)
+3. Define StreamData generators for fake study data
+4. Define property tests that enforce traceability between input and output
+5. ALL TESTS MUST FAIL because `Munger.build/2` does not exist yet
+
+Here is the full test file to create:
+
+```elixir
 defmodule CheironTakeHome.MungerTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
@@ -56,79 +92,6 @@ defmodule CheironTakeHome.MungerTest do
     list_of(study_gen(), min_length: 1, max_length: 20)
   end
 
-  # --- Shape Assertion Helpers ---
-
-  # Universal: every viz spec must have these keys with these types
-  defp assert_viz_spec_shape(viz_spec) do
-    assert is_binary(viz_spec.type) and viz_spec.type != ""
-    assert is_binary(viz_spec.title) and viz_spec.title != ""
-    assert is_map(viz_spec.encoding)
-    assert is_list(viz_spec.data) and length(viz_spec.data) > 0
-    assert is_map(viz_spec.meta)
-  end
-
-  # Every field declared in encoding must appear as a key in every data point
-  defp assert_encoding_data_coherence(viz_spec) do
-    encoding_fields =
-      viz_spec.encoding
-      |> Map.values()
-      |> Enum.map(& &1.field)
-      |> MapSet.new()
-
-    Enum.each(viz_spec.data, fn data_point ->
-      data_keys = data_point |> Map.keys() |> MapSet.new()
-
-      assert MapSet.subset?(encoding_fields, data_keys),
-             "Data point missing fields declared in encoding: #{inspect(MapSet.difference(encoding_fields, data_keys))}"
-    end)
-  end
-
-  # Each encoding channel must have field, label, and type
-  defp assert_encoding_channels(viz_spec) do
-    Enum.each(viz_spec.encoding, fn {_channel, channel_spec} ->
-      assert is_binary(channel_spec.field), "Encoding channel missing :field"
-      assert is_binary(channel_spec.label), "Encoding channel missing :label"
-      assert channel_spec.type in ["categorical", "quantitative", "temporal"],
-             "Encoding channel :type must be categorical, quantitative, or temporal — got #{inspect(channel_spec.type)}"
-    end)
-  end
-
-  # Bar chart: x is categorical, y is quantitative, sort key exists, y values are non-negative integers
-  defp assert_bar_chart_shape(viz_spec) do
-    assert viz_spec.encoding.x.type == "categorical"
-    assert viz_spec.encoding.y.type == "quantitative"
-    assert Map.has_key?(viz_spec, :sort), "Bar chart spec missing :sort key"
-
-    y_field = viz_spec.encoding.y.field
-
-    Enum.each(viz_spec.data, fn point ->
-      val = point[y_field]
-      assert is_integer(val) and val >= 0,
-             "Bar chart y-axis value must be a non-negative integer, got: #{inspect(val)}"
-    end)
-  end
-
-  # Time series: x is temporal with granularity, y is quantitative, y values non-negative integers
-  defp assert_time_series_shape(viz_spec) do
-    assert viz_spec.encoding.x.type == "temporal"
-
-    assert Map.has_key?(viz_spec.encoding.x, :granularity),
-           "Time series x-axis encoding missing :granularity"
-
-    assert viz_spec.encoding.x.granularity in ["year", "month", "quarter"],
-           "Time series granularity must be year, month, or quarter — got #{inspect(viz_spec.encoding.x.granularity)}"
-
-    assert viz_spec.encoding.y.type == "quantitative"
-
-    y_field = viz_spec.encoding.y.field
-
-    Enum.each(viz_spec.data, fn point ->
-      val = point[y_field]
-      assert is_integer(val) and val >= 0,
-             "Time series y-axis value must be a non-negative integer, got: #{inspect(val)}"
-    end)
-  end
-
   # --- Bar Chart Properties ---
 
   describe "build/2 with bar_chart viz_type grouped by phase" do
@@ -178,15 +141,15 @@ defmodule CheironTakeHome.MungerTest do
       end
     end
 
-    property "output has valid shape, encoding channels, encoding-data coherence, and bar chart structure" do
+    property "output has required viz_spec keys" do
       check all(studies <- studies_gen()) do
         viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        assert_viz_spec_shape(viz_spec)
-        assert_encoding_channels(viz_spec)
-        assert_encoding_data_coherence(viz_spec)
-        assert_bar_chart_shape(viz_spec)
+        assert is_binary(viz_spec.type)
+        assert is_binary(viz_spec.title)
+        assert is_map(viz_spec.encoding)
+        assert is_list(viz_spec.data)
       end
     end
   end
@@ -250,16 +213,31 @@ defmodule CheironTakeHome.MungerTest do
       end
     end
 
-    property "output has valid shape, encoding channels, encoding-data coherence, and time series structure" do
+    property "output has required viz_spec keys" do
       check all(studies <- studies_gen()) do
         viz_intent = %{viz_type: :time_series, time_granularity: :year}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        assert_viz_spec_shape(viz_spec)
-        assert_encoding_channels(viz_spec)
-        assert_encoding_data_coherence(viz_spec)
-        assert_time_series_shape(viz_spec)
+        assert is_binary(viz_spec.type)
+        assert is_binary(viz_spec.title)
+        assert is_map(viz_spec.encoding)
+        assert is_list(viz_spec.data)
       end
     end
   end
 end
+```
+
+### Step 2: Verify tests FAIL
+Run `mix test test/cheiron_take_home/munger_test.exs`. All property tests must FAIL because `Munger.build/2` does not exist. If any test passes, something is wrong — report it.
+
+### Step 3: Stage only
+```bash
+git add -A
+```
+
+Do NOT commit. Do NOT run `git commit`.
+
+### HARD STOP
+Do NOT implement `Munger.build/2`. Do NOT modify the Munger stub module. Do NOT make the tests pass. Report what you did, including the test failure output, and stop.
+
