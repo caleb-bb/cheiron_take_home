@@ -3,7 +3,26 @@ defmodule CheironTakeHome.LLM do
 
   @url "https://api.openai.com/v1/chat/completions"
 
-  def interpret(query) do
+  @valid_viz_types ~w(bar_chart time_series network_graph)
+  @max_retries 1
+
+  def interpret(query), do: interpret(query, 0)
+
+  defp interpret(query, attempt) do
+    case call_llm(query) do
+      {:ok, plan} ->
+        case validate_plan(plan) do
+          :ok -> {:ok, plan}
+          {:error, _reason} when attempt < @max_retries -> interpret(query, attempt + 1)
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp call_llm(query) do
     http_client().request(
       url: @url,
       method: :post,
@@ -45,6 +64,16 @@ defmodule CheironTakeHome.LLM do
     do: {:error, %{reason: "LLM API returned #{status}: #{inspect(body)}"}}
 
   defp handle_response({:error, reason}), do: {:error, reason}
+
+  defp validate_plan(%{viz_type: viz_type}) when viz_type not in @valid_viz_types do
+    {:error, %{reason: "Invalid viz_type: #{inspect(viz_type)}"}}
+  end
+
+  defp validate_plan(%{query_params: query_params}) when not is_map(query_params) do
+    {:error, %{reason: "query_params must be a map, got: #{inspect(query_params)}"}}
+  end
+
+  defp validate_plan(_plan), do: :ok
 
   defp http_client, do: Application.get_env(:cheiron_take_home, :http_client)
   defp api_key, do: System.get_env("OPENAI_API_KEY")
