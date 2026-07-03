@@ -122,7 +122,10 @@ To link to another file in markdown, you can use the following syntax:
 
 Replace "Link Text" with the text you want to display as the link, and "path/to/another/file" with the relative or absolute path to the file you want to link to.
 
-### Prompt 1
-[prompt text](claude_code_prompts/prompt_1.md)
+### [Prompt 1](claude_code_prompts/prompt_1.md)
 
-We're gonna need `Req` for http requests, `Mox` for mocking API calls, `stream_data` for property testing, and `nimble_options` because I created this repo with Ecto to validate things. 
+We're gonna need `Req` for http requests, `Mox` for mocking API calls, `stream_data` for property testing, and `nimble_options` because I created this repo with Ecto to validate things.  This is the kind of boilerplate busywork that LLMs are for: stub out modules and tests, add dependencies, run CLI commands.
+
+### [Prompt 2](claude_code_prompts/prompt_2.md)
+
+This prompt creates the failing tests for the API wrapper modules. There will be another prompt to make the tests pass. At that point, I'm going to pause prompting in order to stop and test the API modules in-terminal. If everything shakes out ok, then I'll move on. But if the API responses have unexpected shapes, I'll copy the shape of the responses into Claude Chat, ask for new prompts to fix the tests based on those, run those prompts to revise the tests, allow the tests to fail, and then prompt Claude Code to modify the wrapper modules so that those tests will pass.
