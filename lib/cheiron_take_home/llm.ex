@@ -6,15 +6,28 @@ defmodule CheironTakeHome.LLM do
   @valid_viz_types ~w(bar_chart time_series network_graph)
   @max_retries 1
 
-  def interpret(query), do: interpret(query, 0)
+  def interpret(query) do
+    messages = [
+      %{role: "system", content: system_prompt()},
+      %{role: "user", content: query}
+    ]
 
-  defp interpret(query, attempt) do
-    case call_llm(query) do
+    attempt(messages, 0)
+  end
+
+  defp attempt(messages, retries) do
+    case call_llm(messages) do
       {:ok, plan} ->
         case validate_plan(plan) do
-          :ok -> {:ok, plan}
-          {:error, _reason} when attempt < @max_retries -> interpret(query, attempt + 1)
-          {:error, reason} -> {:error, reason}
+          :ok ->
+            {:ok, plan}
+
+          {:error, %{reason: reason}} when retries < @max_retries ->
+            correction = "Your previous response was invalid: #{reason}. Please try again with a valid response."
+            attempt(messages ++ [%{role: "user", content: correction}], retries + 1)
+
+          {:error, reason} ->
+            {:error, reason}
         end
 
       {:error, reason} ->
@@ -22,7 +35,7 @@ defmodule CheironTakeHome.LLM do
     end
   end
 
-  defp call_llm(query) do
+  defp call_llm(messages) do
     http_client().request(
       url: @url,
       method: :post,
@@ -33,10 +46,7 @@ defmodule CheironTakeHome.LLM do
       body: Jason.encode!(%{
         model: "gpt-4o",
         response_format: %{type: "json_object"},
-        messages: [
-          %{role: "system", content: system_prompt()},
-          %{role: "user", content: query}
-        ]
+        messages: messages
       })
     )
     |> handle_response()
