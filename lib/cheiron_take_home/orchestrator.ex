@@ -47,6 +47,7 @@ defmodule CheironTakeHome.Orchestrator do
       %{viz_type: to_viz_type(query_plan.viz_type)}
       |> maybe_put(:group_by, query_plan.group_by)
       |> maybe_put(:time_granularity, to_granularity(query_plan.time_granularity))
+      |> maybe_put(:edge_type, to_edge_type(query_plan[:edge_type]))
       |> maybe_put(:subject, subject)
 
     {api_params, viz_intent}
@@ -54,6 +55,11 @@ defmodule CheironTakeHome.Orchestrator do
 
   defp to_viz_type("bar_chart"), do: :bar_chart
   defp to_viz_type("time_series"), do: :time_series
+  defp to_viz_type("network_graph"), do: :network_graph
+
+  defp to_edge_type("condition_to_intervention"), do: :condition_to_intervention
+  defp to_edge_type("condition_to_sponsor"), do: :condition_to_sponsor
+  defp to_edge_type(nil), do: nil
 
   defp to_granularity("yearly"), do: :year
   defp to_granularity("year"), do: :year
@@ -62,6 +68,10 @@ defmodule CheironTakeHome.Orchestrator do
   defp to_granularity(nil), do: nil
 
   defp ensure_page_size(api_params, %{viz_type: :time_series}) do
+    Map.put_new(api_params, :page_size, @default_time_series_page_size)
+  end
+
+  defp ensure_page_size(api_params, %{viz_type: :network_graph}) do
     Map.put_new(api_params, :page_size, @default_time_series_page_size)
   end
 

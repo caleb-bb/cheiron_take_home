@@ -72,6 +72,57 @@ defmodule CheironTakeHome.Munger do
     end
   end
 
+  def build(studies, %{viz_type: :network_graph, edge_type: edge_type} = intent) do
+    data =
+      studies
+      |> Enum.flat_map(&extract_edges(&1, edge_type))
+      |> Enum.frequencies()
+      |> Enum.map(fn {{source, target}, weight} ->
+        %{"source" => source, "target" => target, "weight" => weight}
+      end)
+      |> Enum.sort_by(& &1["weight"], :desc)
+
+    if data == [] do
+      {:error, :empty_result}
+    else
+      {source_label, target_label} = edge_labels(edge_type)
+      title = build_title(intent[:subject], "Treatment Network")
+
+      {:ok, %{
+        type: "network_graph",
+        title: title,
+        encoding: %{
+          source: %{field: "source", label: source_label, type: "categorical"},
+          target: %{field: "target", label: target_label, type: "categorical"},
+          weight: %{field: "weight", label: "Number of Trials", type: "quantitative"}
+        },
+        data: data,
+        meta: %{source: "clinicaltrials.gov", total_studies: length(studies), edge_type: Atom.to_string(edge_type)}
+      }}
+    end
+  end
+
+  defp edge_labels(:condition_to_intervention), do: {"Condition", "Intervention"}
+  defp edge_labels(:condition_to_sponsor), do: {"Condition", "Sponsor"}
+
+  defp extract_edges(study, :condition_to_intervention) do
+    conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+
+    interventions =
+      (get_in(study, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
+      |> Enum.map(& &1["name"])
+      |> Enum.reject(&is_nil/1)
+
+    for c <- conditions, i <- interventions, do: {c, i}
+  end
+
+  defp extract_edges(study, :condition_to_sponsor) do
+    conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+    sponsor = get_in(study, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+    if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
+  end
+
   defp build_title(nil, suffix), do: "Clinical Trials #{suffix}"
 
   defp build_title(subject, suffix) do

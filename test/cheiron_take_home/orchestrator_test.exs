@@ -129,6 +129,76 @@ defmodule CheironTakeHome.OrchestratorTest do
       assert {:error, _reason} = CheironTakeHome.Orchestrator.query("diabetes trials by phase")
     end
 
+    test "full pipeline: network_graph viz type" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "network_graph",
+                    "query_params" => %{"query_cond" => "lung cancer"},
+                    "edge_type" => "condition_to_intervention"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "studies" => [
+              %{
+                "protocolSection" => %{
+                  "conditionsModule" => %{"conditions" => ["Lung Cancer"]},
+                  "armsInterventionsModule" => %{
+                    "interventions" => [
+                      %{"name" => "Pembrolizumab", "type" => "DRUG"},
+                      %{"name" => "Radiation", "type" => "RADIATION"}
+                    ]
+                  },
+                  "sponsorCollaboratorsModule" => %{
+                    "leadSponsor" => %{"name" => "NIH"}
+                  }
+                }
+              },
+              %{
+                "protocolSection" => %{
+                  "conditionsModule" => %{"conditions" => ["Lung Cancer", "NSCLC"]},
+                  "armsInterventionsModule" => %{
+                    "interventions" => [
+                      %{"name" => "Pembrolizumab", "type" => "DRUG"}
+                    ]
+                  },
+                  "sponsorCollaboratorsModule" => %{
+                    "leadSponsor" => %{"name" => "Pfizer"}
+                  }
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      assert {:ok, viz_spec} = CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
+
+      assert viz_spec.type == "network_graph"
+      assert is_list(viz_spec.data)
+      assert length(viz_spec.data) > 0
+
+      sources = Enum.map(viz_spec.data, & &1["source"])
+      assert "Lung Cancer" in sources
+
+      targets = Enum.map(viz_spec.data, & &1["target"])
+      assert "Pembrolizumab" in targets
+    end
+
     test "returns error when LLM produces no recognized search terms" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->

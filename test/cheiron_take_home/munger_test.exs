@@ -22,13 +22,28 @@ defmodule CheironTakeHome.MungerTest do
 
   # Generate a single study map with the nested structure the munger actually reads.
   # Fields not used by the munger are omitted — the munger must tolerate their absence.
+  defp condition_gen do
+    member_of(["Lung Cancer", "Breast Cancer", "Diabetes", "Alzheimer's Disease", "Hypertension", "Asthma"])
+  end
+
+  defp intervention_gen do
+    member_of(["Pembrolizumab", "Radiation Therapy", "Metformin", "Placebo", "Surgery", "Chemotherapy"])
+  end
+
+  defp sponsor_gen do
+    member_of(["NIH", "Pfizer", "Novartis", "Mayo Clinic", "Johns Hopkins", "AstraZeneca"])
+  end
+
   defp study_gen do
     gen all(
           nct_id <- string(:alphanumeric, min_length: 8, max_length: 12),
           title <- string(:alphanumeric, min_length: 5, max_length: 50),
           phases <- list_of(phase_gen(), min_length: 1, max_length: 2),
           start_date <- date_string_gen(),
-          status <- member_of(["RECRUITING", "COMPLETED", "TERMINATED", "ACTIVE_NOT_RECRUITING", "WITHDRAWN"])
+          status <- member_of(["RECRUITING", "COMPLETED", "TERMINATED", "ACTIVE_NOT_RECRUITING", "WITHDRAWN"]),
+          conditions <- list_of(condition_gen(), min_length: 1, max_length: 2),
+          interventions <- list_of(intervention_gen(), min_length: 1, max_length: 3),
+          sponsor <- sponsor_gen()
         ) do
       %{
         "protocolSection" => %{
@@ -45,6 +60,15 @@ defmodule CheironTakeHome.MungerTest do
               "date" => start_date,
               "type" => "ACTUAL"
             }
+          },
+          "conditionsModule" => %{
+            "conditions" => conditions
+          },
+          "armsInterventionsModule" => %{
+            "interventions" => Enum.map(interventions, &%{"name" => &1, "type" => "DRUG"})
+          },
+          "sponsorCollaboratorsModule" => %{
+            "leadSponsor" => %{"name" => sponsor, "class" => "OTHER"}
           }
         }
       }
@@ -126,6 +150,21 @@ defmodule CheironTakeHome.MungerTest do
       val = point[y_field]
       assert is_integer(val) and val >= 0,
              "Time series y-axis value must be a non-negative integer, got: #{inspect(val)}"
+    end)
+  end
+
+  # Network graph: source and target are categorical, weight is quantitative and non-negative
+  defp assert_network_graph_shape(viz_spec) do
+    assert viz_spec.encoding.source.type == "categorical"
+    assert viz_spec.encoding.target.type == "categorical"
+    assert viz_spec.encoding.weight.type == "quantitative"
+
+    weight_field = viz_spec.encoding.weight.field
+
+    Enum.each(viz_spec.data, fn point ->
+      val = point[weight_field]
+      assert is_integer(val) and val >= 0,
+             "Network graph weight must be a non-negative integer, got: #{inspect(val)}"
     end)
   end
 
@@ -316,6 +355,137 @@ defmodule CheironTakeHome.MungerTest do
         assert_encoding_channels(viz_spec)
         assert_encoding_data_coherence(viz_spec)
         assert_time_series_shape(viz_spec)
+      end
+    end
+  end
+
+  # --- Network Graph Properties (condition_to_intervention) ---
+
+  describe "build/2 with network_graph viz_type (condition_to_intervention)" do
+    property "every edge in the output traces to an input study" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_edges =
+          studies
+          |> Enum.flat_map(fn s ->
+            conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+            interventions =
+              (get_in(s, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
+              |> Enum.map(& &1["name"])
+              |> Enum.reject(&is_nil/1)
+            for c <- conditions, i <- interventions, do: {c, i}
+          end)
+          |> MapSet.new()
+
+        output_edges =
+          viz_spec.data
+          |> Enum.map(&{&1["source"], &1["target"]})
+          |> MapSet.new()
+
+        assert MapSet.subset?(output_edges, input_edges),
+               "Output contains edges not in input: #{inspect(MapSet.difference(output_edges, input_edges))}"
+      end
+    end
+
+    property "no phantom weights: sum of weights equals total condition-intervention pairs in input" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_pair_count =
+          studies
+          |> Enum.flat_map(fn s ->
+            conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+            interventions =
+              (get_in(s, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
+              |> Enum.map(& &1["name"])
+              |> Enum.reject(&is_nil/1)
+            for c <- conditions, i <- interventions, do: {c, i}
+          end)
+          |> length()
+
+        output_total =
+          viz_spec.data
+          |> Enum.map(& &1["weight"])
+          |> Enum.sum()
+
+        assert output_total == input_pair_count
+      end
+    end
+
+    property "output has valid shape, encoding-data coherence, and network graph structure" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        assert_viz_spec_shape(viz_spec)
+        assert_encoding_channels(viz_spec)
+        assert_encoding_data_coherence(viz_spec)
+        assert_network_graph_shape(viz_spec)
+      end
+    end
+  end
+
+  # --- Network Graph Properties (condition_to_sponsor) ---
+
+  describe "build/2 with network_graph viz_type (condition_to_sponsor)" do
+    property "every edge in the output traces to an input study" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_edges =
+          studies
+          |> Enum.flat_map(fn s ->
+            conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+            sponsor = get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+            if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
+          end)
+          |> MapSet.new()
+
+        output_edges =
+          viz_spec.data
+          |> Enum.map(&{&1["source"], &1["target"]})
+          |> MapSet.new()
+
+        assert MapSet.subset?(output_edges, input_edges)
+      end
+    end
+
+    property "no phantom weights: sum of weights equals total condition-sponsor pairs in input" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_pair_count =
+          studies
+          |> Enum.flat_map(fn s ->
+            conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+            sponsor = get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+            if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
+          end)
+          |> length()
+
+        output_total =
+          viz_spec.data
+          |> Enum.map(& &1["weight"])
+          |> Enum.sum()
+
+        assert output_total == input_pair_count
+      end
+    end
+
+    property "output has valid shape, encoding-data coherence, and network graph structure" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        assert_viz_spec_shape(viz_spec)
+        assert_encoding_channels(viz_spec)
+        assert_encoding_data_coherence(viz_spec)
+        assert_network_graph_shape(viz_spec)
       end
     end
   end

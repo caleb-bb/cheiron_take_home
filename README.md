@@ -122,6 +122,41 @@ CheironTakeHome.Orchestrator.query("What phases are immunotherapy trials in?")
 }
 ```
 
+## Lung cancer treatment network
+
+```elixir
+CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
+```
+
+```json
+{
+  "data": [
+    {"source": "Non Small Cell Lung Cancer", "target": "Atezolizumab", "weight": 2},
+    {"source": "Solid Tumor Cancer", "target": "Dexamethasone", "weight": 2},
+    {"source": "Lung Cancer", "target": "Radiation Therapy", "weight": 2},
+    {"source": "Lung Cancer", "target": "Standard Care", "weight": 2},
+    {"source": "Lung Cancer", "target": "Irinotecan Hydrochloride", "weight": 2},
+    {"source": "Non Small Cell Lung Cancer", "target": "Entrectinib", "weight": 1},
+    {"source": "Non Small Cell Lung Cancer", "target": "Lapatinib", "weight": 1},
+    {"source": "Non Small Cell Lung Cancer", "target": "Alectinib", "weight": 1},
+    {"source": "Adenocarcinoma", "target": "Pemetrexed", "weight": 1},
+    {"source": "Breast Cancer", "target": "Atezolizumab", "weight": 1}
+  ],
+  "meta": {
+    "source": "clinicaltrials.gov",
+    "total_studies": 100,
+    "edge_type": "condition_to_intervention"
+  },
+  "type": "network_graph",
+  "encoding": {
+    "source": {"label": "Condition", "type": "categorical", "field": "source"},
+    "target": {"label": "Intervention", "type": "categorical", "field": "target"},
+    "weight": {"label": "Number of Trials", "type": "quantitative", "field": "weight"}
+  },
+  "title": "Lung Cancer Clinical Trials Treatment Network"
+}
+```
+
 ## CRISPR clinical trials over time
 
 ```elixir
@@ -222,7 +257,7 @@ The response wraps a visualization specification under a `visualization` key:
 
 | Field | Type | Present | Description |
 |---|---|---|---|
-| `type` | `"bar_chart"` or `"time_series"` | Always | Visualization type |
+| `type` | `"bar_chart"`, `"time_series"`, or `"network_graph"` | Always | Visualization type |
 | `title` | string | Always | Human-readable title incorporating the search subject |
 | `encoding` | object | Always | Maps data fields to visual channels (see below) |
 | `data` | array of objects | Always | Data points to render; keys match `encoding` field names |
@@ -231,7 +266,7 @@ The response wraps a visualization specification under a `visualization` key:
 
 ### Encoding channels
 
-Each channel in `encoding` (keyed by `x`, `y`) has:
+Each channel in `encoding` (keyed by `x`/`y` for charts, or `source`/`target`/`weight` for network graphs) has:
 
 | Field | Type | Description |
 |---|---|---|
@@ -247,6 +282,10 @@ Each object in `data` has a categorical field (the `group_by` value, e.g. `"phas
 ### Time series data points
 
 Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`) and `"count"` (integer).
+
+### Network graph data points
+
+Each object in `data` has `"source"` (string, e.g. a condition name), `"target"` (string, e.g. an intervention or sponsor name), and `"weight"` (integer, number of trials linking the pair). The `meta` object includes `edge_type` (`"condition_to_intervention"` or `"condition_to_sponsor"`).
 
 ## Response (error)
 
@@ -270,7 +309,7 @@ Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`) and 
 
 # Limitations and Future Work (AI generated)
 
-**Only two viz types.** The assignment suggests network graphs, scatter plots, and histograms. The current architecture supports adding these — new Munger function heads, new `extract_group_values` clauses, and updated LLM prompt constraints — but only bar charts and time series are implemented.
+**Three viz types.** Bar charts, time series, and network graphs are implemented. The assignment also suggests scatter plots and histograms, which could be added with new Munger function heads and LLM prompt constraints.
 
 **No deep citations.** Data points don't trace back to individual `nct_id`s or text excerpts. The data is there in the API response (each study has `nctId` and `briefTitle`), but the Munger aggregates it away. Adding citations would mean carrying study references through the frequency counting.
 
