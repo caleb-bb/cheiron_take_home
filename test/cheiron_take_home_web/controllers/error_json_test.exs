@@ -2,7 +2,9 @@ defmodule CheironTakeHomeWeb.ErrorJSONTest do
   use CheironTakeHomeWeb.ConnCase, async: true
 
   test "renders 404" do
-    assert CheironTakeHomeWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+    assert CheironTakeHomeWeb.ErrorJSON.render("404.json", %{}) == %{
+             errors: %{detail: "Not Found"}
+           }
   end
 
   test "renders 500" do

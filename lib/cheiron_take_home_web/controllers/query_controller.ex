@@ -42,14 +42,20 @@ defmodule CheironTakeHomeWeb.QueryController do
 
   defp validate_year_field(fields, key) do
     case fields[key] do
-      nil -> :ok
-      val when is_integer(val) -> :ok
+      nil ->
+        :ok
+
+      val when is_integer(val) ->
+        :ok
+
       val when is_binary(val) ->
         case Integer.parse(val) do
           {_, ""} -> :ok
           _ -> {:error, "Invalid #{key}: must be a number"}
         end
-      _ -> {:error, "Invalid #{key}: must be a number"}
+
+      _ ->
+        {:error, "Invalid #{key}: must be a number"}
     end
   end
 
@@ -61,18 +67,28 @@ defmodule CheironTakeHomeWeb.QueryController do
 
   defp cast_year_field(fields, key) do
     case fields[key] do
-      nil -> fields
-      val when is_integer(val) -> fields
+      nil ->
+        fields
+
+      val when is_integer(val) ->
+        fields
+
       val when is_binary(val) ->
         {int, ""} = Integer.parse(val)
         Map.put(fields, key, int)
     end
   end
 
-  defp format_error(:no_search_terms), do: "Could not extract search terms from the query — try being more specific about a condition or treatment"
-  defp format_error(:empty_result), do: "No data matched the query — try broadening your search terms"
+  defp format_error(:no_search_terms),
+    do:
+      "Could not extract search terms from the query — try being more specific about a condition or treatment"
+
+  defp format_error(:empty_result),
+    do: "No data matched the query — try broadening your search terms"
+
   defp format_error({:unsupported_group_by, value, supported}),
     do: "Unsupported grouping \"#{value}\". Supported: #{Enum.join(supported, ", ")}"
+
   defp format_error({:unexpected, _}), do: "Unexpected response from upstream service"
   defp format_error(%{reason: reason}), do: "Upstream error: #{inspect(reason)}"
   defp format_error(reason), do: inspect(reason)

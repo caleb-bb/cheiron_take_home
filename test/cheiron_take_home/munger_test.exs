@@ -23,11 +23,25 @@ defmodule CheironTakeHome.MungerTest do
   # Generate a single study map with the nested structure the munger actually reads.
   # Fields not used by the munger are omitted — the munger must tolerate their absence.
   defp condition_gen do
-    member_of(["Lung Cancer", "Breast Cancer", "Diabetes", "Alzheimer's Disease", "Hypertension", "Asthma"])
+    member_of([
+      "Lung Cancer",
+      "Breast Cancer",
+      "Diabetes",
+      "Alzheimer's Disease",
+      "Hypertension",
+      "Asthma"
+    ])
   end
 
   defp intervention_gen do
-    member_of(["Pembrolizumab", "Radiation Therapy", "Metformin", "Placebo", "Surgery", "Chemotherapy"])
+    member_of([
+      "Pembrolizumab",
+      "Radiation Therapy",
+      "Metformin",
+      "Placebo",
+      "Surgery",
+      "Chemotherapy"
+    ])
   end
 
   defp sponsor_gen do
@@ -40,10 +54,18 @@ defmodule CheironTakeHome.MungerTest do
           title <- string(:alphanumeric, min_length: 5, max_length: 50),
           phases <- list_of(phase_gen(), min_length: 1, max_length: 2),
           start_date <- date_string_gen(),
-          status <- member_of(["RECRUITING", "COMPLETED", "TERMINATED", "ACTIVE_NOT_RECRUITING", "WITHDRAWN"]),
+          status <-
+            member_of([
+              "RECRUITING",
+              "COMPLETED",
+              "TERMINATED",
+              "ACTIVE_NOT_RECRUITING",
+              "WITHDRAWN"
+            ]),
           conditions <- list_of(condition_gen(), min_length: 1, max_length: 2),
           interventions <- list_of(intervention_gen(), min_length: 1, max_length: 3),
-          sponsor <- sponsor_gen()
+          sponsor <- sponsor_gen(),
+          enrollment <- integer(10..5000)
         ) do
       %{
         "protocolSection" => %{
@@ -52,7 +74,8 @@ defmodule CheironTakeHome.MungerTest do
             "briefTitle" => title
           },
           "designModule" => %{
-            "phases" => phases
+            "phases" => phases,
+            "enrollmentInfo" => %{"count" => enrollment, "type" => "ACTUAL"}
           },
           "statusModule" => %{
             "overallStatus" => status,
@@ -112,6 +135,7 @@ defmodule CheironTakeHome.MungerTest do
     Enum.each(viz_spec.encoding, fn {_channel, channel_spec} ->
       assert is_binary(channel_spec.field), "Encoding channel missing :field"
       assert is_binary(channel_spec.label), "Encoding channel missing :label"
+
       assert channel_spec.type in ["categorical", "quantitative", "temporal"],
              "Encoding channel :type must be categorical, quantitative, or temporal — got #{inspect(channel_spec.type)}"
     end)
@@ -127,6 +151,7 @@ defmodule CheironTakeHome.MungerTest do
 
     Enum.each(viz_spec.data, fn point ->
       val = point[y_field]
+
       assert is_integer(val) and val >= 0,
              "Bar chart y-axis value must be a non-negative integer, got: #{inspect(val)}"
     end)
@@ -148,6 +173,7 @@ defmodule CheironTakeHome.MungerTest do
 
     Enum.each(viz_spec.data, fn point ->
       val = point[y_field]
+
       assert is_integer(val) and val >= 0,
              "Time series y-axis value must be a non-negative integer, got: #{inspect(val)}"
     end)
@@ -163,8 +189,21 @@ defmodule CheironTakeHome.MungerTest do
 
     Enum.each(viz_spec.data, fn point ->
       val = point[weight_field]
+
       assert is_integer(val) and val >= 0,
              "Network graph weight must be a non-negative integer, got: #{inspect(val)}"
+    end)
+  end
+
+  # Scatter plot: x and y are quantitative, every point has nct_id and label
+  defp assert_scatter_plot_shape(viz_spec) do
+    assert viz_spec.encoding.x.type == "quantitative"
+    assert viz_spec.encoding.y.type == "quantitative"
+
+    Enum.each(viz_spec.data, fn point ->
+      assert is_integer(point["start_year"]), "Scatter plot x must be an integer"
+      assert is_integer(point["enrollment"]) and point["enrollment"] > 0,
+             "Scatter plot y must be a positive integer"
     end)
   end
 
@@ -283,9 +322,10 @@ defmodule CheironTakeHome.MungerTest do
         viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        studies_by_nct = Map.new(studies, fn s ->
-          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
-        end)
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
 
         Enum.each(viz_spec.data, fn point ->
           phase = point["phase"]
@@ -322,9 +362,10 @@ defmodule CheironTakeHome.MungerTest do
         viz_intent = %{viz_type: :bar_chart, group_by: "status"}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        studies_by_nct = Map.new(studies, fn s ->
-          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
-        end)
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
 
         Enum.each(viz_spec.data, fn point ->
           status = point["status"]
@@ -367,7 +408,10 @@ defmodule CheironTakeHome.MungerTest do
       ]
 
       assert {:error, :empty_result} =
-               CheironTakeHome.Munger.build(studies_without_phases, %{viz_type: :bar_chart, group_by: "phase"})
+               CheironTakeHome.Munger.build(studies_without_phases, %{
+                 viz_type: :bar_chart,
+                 group_by: "phase"
+               })
     end
   end
 
@@ -421,10 +465,12 @@ defmodule CheironTakeHome.MungerTest do
         input_years =
           studies
           |> Enum.map(fn s ->
-            date_str = get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) || ""
+            date_str =
+              get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) || ""
+
             String.slice(date_str, 0, 4)
           end)
-          |> Enum.reject(& &1 == "")
+          |> Enum.reject(&(&1 == ""))
           |> MapSet.new()
 
         output_years =
@@ -505,9 +551,10 @@ defmodule CheironTakeHome.MungerTest do
         viz_intent = %{viz_type: :time_series, time_granularity: :year}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        studies_by_nct = Map.new(studies, fn s ->
-          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
-        end)
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
 
         Enum.each(viz_spec.data, fn point ->
           period = point["period"]
@@ -551,6 +598,7 @@ defmodule CheironTakeHome.MungerTest do
           {:ok, viz_spec} ->
             Enum.each(viz_spec.data, fn point ->
               {period_year, _} = Integer.parse(point["period"])
+
               assert period_year >= start_year,
                      "Period #{point["period"]} is before start_year #{start_year}"
             end)
@@ -573,6 +621,7 @@ defmodule CheironTakeHome.MungerTest do
           {:ok, viz_spec} ->
             Enum.each(viz_spec.data, fn point ->
               {period_year, _} = Integer.parse(point["period"])
+
               assert period_year <= end_year,
                      "Period #{point["period"]} is after end_year #{end_year}"
             end)
@@ -587,13 +636,21 @@ defmodule CheironTakeHome.MungerTest do
       check all(studies <- studies_gen()) do
         start_year = 2018
         end_year = 2022
-        viz_intent = %{viz_type: :time_series, time_granularity: :year, start_year: start_year, end_year: end_year}
+
+        viz_intent = %{
+          viz_type: :time_series,
+          time_granularity: :year,
+          start_year: start_year,
+          end_year: end_year
+        }
+
         result = CheironTakeHome.Munger.build(studies, viz_intent)
 
         expected_count =
           studies
           |> Enum.count(fn s ->
             date_str = get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])
+
             if date_str do
               {year, _} = Integer.parse(String.slice(date_str, 0, 4))
               year >= start_year and year <= end_year
@@ -626,10 +683,12 @@ defmodule CheironTakeHome.MungerTest do
           studies
           |> Enum.flat_map(fn s ->
             conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+
             interventions =
               (get_in(s, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
               |> Enum.map(& &1["name"])
               |> Enum.reject(&is_nil/1)
+
             for c <- conditions, i <- interventions, do: {c, i}
           end)
           |> MapSet.new()
@@ -653,10 +712,12 @@ defmodule CheironTakeHome.MungerTest do
           studies
           |> Enum.flat_map(fn s ->
             conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
+
             interventions =
               (get_in(s, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
               |> Enum.map(& &1["name"])
               |> Enum.reject(&is_nil/1)
+
             for c <- conditions, i <- interventions, do: {c, i}
           end)
           |> length()
@@ -707,9 +768,10 @@ defmodule CheironTakeHome.MungerTest do
         viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        studies_by_nct = Map.new(studies, fn s ->
-          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
-        end)
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
 
         Enum.each(viz_spec.data, fn point ->
           source = point["source"]
@@ -717,10 +779,13 @@ defmodule CheironTakeHome.MungerTest do
 
           Enum.each(point["citations"], fn citation ->
             study = studies_by_nct[citation["nct_id"]]
-            conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+
+            conditions =
+              get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
 
             interventions =
-              (get_in(study, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
+              (get_in(study, ["protocolSection", "armsInterventionsModule", "interventions"]) ||
+                 [])
               |> Enum.map(& &1["name"])
 
             assert source in conditions,
@@ -757,7 +822,10 @@ defmodule CheironTakeHome.MungerTest do
           studies
           |> Enum.flat_map(fn s ->
             conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
-            sponsor = get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+            sponsor =
+              get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
             if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
           end)
           |> MapSet.new()
@@ -780,7 +848,10 @@ defmodule CheironTakeHome.MungerTest do
           studies
           |> Enum.flat_map(fn s ->
             conditions = get_in(s, ["protocolSection", "conditionsModule", "conditions"]) || []
-            sponsor = get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+            sponsor =
+              get_in(s, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
             if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
           end)
           |> length()
@@ -815,9 +886,10 @@ defmodule CheironTakeHome.MungerTest do
         viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
-        studies_by_nct = Map.new(studies, fn s ->
-          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
-        end)
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
 
         Enum.each(viz_spec.data, fn point ->
           source = point["source"]
@@ -825,8 +897,17 @@ defmodule CheironTakeHome.MungerTest do
 
           Enum.each(point["citations"], fn citation ->
             study = studies_by_nct[citation["nct_id"]]
-            conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
-            sponsor = get_in(study, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+            conditions =
+              get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+
+            sponsor =
+              get_in(study, [
+                "protocolSection",
+                "sponsorCollaboratorsModule",
+                "leadSponsor",
+                "name"
+              ])
 
             assert source in conditions,
                    "Citation #{citation["nct_id"]} on edge from #{source} but study has conditions #{inspect(conditions)}"
@@ -847,6 +928,199 @@ defmodule CheironTakeHome.MungerTest do
           assert length(point["citations"]) == point["weight"]
         end)
       end
+    end
+  end
+
+  # --- Scatter Plot Properties ---
+
+  describe "build/2 with scatter_plot viz_type" do
+    property "output has valid shape, encoding channels, encoding-data coherence, and scatter plot structure" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        assert_viz_spec_shape(viz_spec)
+        assert_encoding_channels(viz_spec)
+        assert_encoding_data_coherence(viz_spec)
+        assert_scatter_plot_shape(viz_spec)
+      end
+    end
+
+    property "every output nct_id exists in input studies" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_nct_ids =
+          studies
+          |> Enum.map(&get_in(&1, ["protocolSection", "identificationModule", "nctId"]))
+          |> MapSet.new()
+
+        Enum.each(viz_spec.data, fn point ->
+          assert point["nct_id"] in input_nct_ids,
+                 "Output nct_id #{point["nct_id"]} not found in input studies"
+        end)
+      end
+    end
+
+    property "every output point has non-empty nct_id and label" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert is_binary(point["nct_id"]) and point["nct_id"] != ""
+          assert is_binary(point["label"]) and point["label"] != ""
+        end)
+      end
+    end
+
+    property "no duplicate nct_ids in output" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        nct_ids = Enum.map(viz_spec.data, & &1["nct_id"])
+        assert length(nct_ids) == length(Enum.uniq(nct_ids)),
+               "Duplicate nct_ids in scatter plot output"
+      end
+    end
+
+    property "output count equals input studies with both enrollment and start date" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        expected_count =
+          Enum.count(studies, fn s ->
+            enrollment = get_in(s, ["protocolSection", "designModule", "enrollmentInfo", "count"])
+            date = get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])
+            enrollment != nil and date != nil and date != ""
+          end)
+
+        assert length(viz_spec.data) == expected_count
+      end
+    end
+
+    property "each point's enrollment matches input study" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
+
+        Enum.each(viz_spec.data, fn point ->
+          study = studies_by_nct[point["nct_id"]]
+          expected = get_in(study, ["protocolSection", "designModule", "enrollmentInfo", "count"])
+          assert point["enrollment"] == expected
+        end)
+      end
+    end
+
+    property "each point's start_year matches input study's start date year" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
+
+        Enum.each(viz_spec.data, fn point ->
+          study = studies_by_nct[point["nct_id"]]
+          date = get_in(study, ["protocolSection", "statusModule", "startDateStruct", "date"])
+          {expected_year, _} = Integer.parse(String.slice(date, 0, 4))
+          assert point["start_year"] == expected_year
+        end)
+      end
+    end
+  end
+
+  # --- Scatter Plot with color_by ---
+
+  describe "build/2 scatter_plot with color_by" do
+    property "when color_by is status, each point's value matches input study" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot, color_by: "status"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        assert Map.has_key?(viz_spec.encoding, :color)
+        assert viz_spec.encoding.color.type == "categorical"
+
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
+
+        Enum.each(viz_spec.data, fn point ->
+          study = studies_by_nct[point["nct_id"]]
+          expected = get_in(study, ["protocolSection", "statusModule", "overallStatus"])
+          assert point["status"] == expected
+        end)
+      end
+    end
+
+    property "when color_by is phase, each point's value matches input study's joined phases" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :scatter_plot, color_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct =
+          Map.new(studies, fn s ->
+            {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+          end)
+
+        Enum.each(viz_spec.data, fn point ->
+          study = studies_by_nct[point["nct_id"]]
+          phases = get_in(study, ["protocolSection", "designModule", "phases"]) || []
+          expected = Enum.join(phases, "/")
+          assert point["phase"] == expected
+        end)
+      end
+    end
+  end
+
+  # --- Scatter Plot Edge Cases ---
+
+  describe "build/2 scatter_plot edge cases" do
+    test "returns error when all studies lack enrollment" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "designModule" => %{"phases" => ["PHASE1"]},
+            "statusModule" => %{
+              "overallStatus" => "COMPLETED",
+              "startDateStruct" => %{"date" => "2024-01-01"}
+            }
+          }
+        }
+      ]
+
+      assert {:error, :empty_result} =
+               CheironTakeHome.Munger.build(studies, %{viz_type: :scatter_plot})
+    end
+
+    test "returns error when all studies lack start dates" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "designModule" => %{
+              "phases" => ["PHASE1"],
+              "enrollmentInfo" => %{"count" => 100}
+            },
+            "statusModule" => %{"overallStatus" => "COMPLETED"}
+          }
+        }
+      ]
+
+      assert {:error, :empty_result} =
+               CheironTakeHome.Munger.build(studies, %{viz_type: :scatter_plot})
     end
   end
 end

@@ -23,7 +23,9 @@ defmodule CheironTakeHome.LLM do
             {:ok, plan}
 
           {:error, %{reason: reason}} when retries < @max_retries ->
-            correction = "Your previous response was invalid: #{reason}. Please try again with a valid response."
+            correction =
+              "Your previous response was invalid: #{reason}. Please try again with a valid response."
+
             attempt(messages ++ [%{role: "user", content: correction}], retries + 1)
 
           {:error, reason} ->
@@ -43,11 +45,12 @@ defmodule CheironTakeHome.LLM do
         {"authorization", "Bearer #{api_key()}"},
         {"content-type", "application/json"}
       ],
-      body: Jason.encode!(%{
-        model: "gpt-4o",
-        response_format: %{type: "json_object"},
-        messages: messages
-      })
+      body:
+        Jason.encode!(%{
+          model: "gpt-4o",
+          response_format: %{type: "json_object"},
+          messages: messages
+        })
     )
     |> handle_response()
   end
@@ -61,13 +64,14 @@ defmodule CheironTakeHome.LLM do
 
     plan = Jason.decode!(content)
 
-    {:ok, %{
-      viz_type: plan["viz_type"],
-      query_params: plan["query_params"],
-      group_by: plan["group_by"],
-      time_granularity: plan["time_granularity"],
-      edge_type: plan["edge_type"]
-    }}
+    {:ok,
+     %{
+       viz_type: plan["viz_type"],
+       query_params: plan["query_params"],
+       group_by: plan["group_by"],
+       time_granularity: plan["time_granularity"],
+       edge_type: plan["edge_type"]
+     }}
   end
 
   defp handle_response({:ok, %{status: status, body: body}}),

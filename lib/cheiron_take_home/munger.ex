@@ -27,17 +27,18 @@ defmodule CheironTakeHome.Munger do
       label = group_by |> String.replace("_", " ") |> String.capitalize()
       title = build_title(intent[:subject], "by #{label}")
 
-      {:ok, %{
-        type: "bar_chart",
-        title: title,
-        encoding: %{
-          x: %{field: group_by, label: label, type: "categorical"},
-          y: %{field: "trial_count", label: "Number of Trials", type: "quantitative"}
-        },
-        data: data,
-        meta: %{source: "clinicaltrials.gov", total_studies: length(studies)},
-        sort: %{field: group_by, order: "descending"}
-      }}
+      {:ok,
+       %{
+         type: "bar_chart",
+         title: title,
+         encoding: %{
+           x: %{field: group_by, label: label, type: "categorical"},
+           y: %{field: "trial_count", label: "Number of Trials", type: "quantitative"}
+         },
+         data: data,
+         meta: %{source: "clinicaltrials.gov", total_studies: length(studies)},
+         sort: %{field: group_by, order: "descending"}
+       }}
     end
   end
 
@@ -51,7 +52,9 @@ defmodule CheironTakeHome.Munger do
       end)
       |> Enum.reject(fn {date, _s} -> is_nil(date) or date == "" end)
       |> filter_by_year_range(intent)
-      |> Enum.map(fn {date, study} -> {extract_period(date, granularity), citation_for(study)} end)
+      |> Enum.map(fn {date, study} ->
+        {extract_period(date, granularity), citation_for(study)}
+      end)
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
       |> Enum.map(fn {period, citations} ->
         %{"period" => period, "count" => length(citations), "citations" => citations}
@@ -63,16 +66,21 @@ defmodule CheironTakeHome.Munger do
     else
       title = build_title(intent[:subject], "Over Time")
 
-      {:ok, %{
-        type: "time_series",
-        title: title,
-        encoding: %{
-          x: %{field: "period", label: "Year", type: "temporal", granularity: gran_str},
-          y: %{field: "count", label: "Number of Trials Started", type: "quantitative"}
-        },
-        data: data,
-        meta: %{source: "clinicaltrials.gov", total_studies: length(studies), date_field: "startDateStruct"}
-      }}
+      {:ok,
+       %{
+         type: "time_series",
+         title: title,
+         encoding: %{
+           x: %{field: "period", label: "Year", type: "temporal", granularity: gran_str},
+           y: %{field: "count", label: "Number of Trials Started", type: "quantitative"}
+         },
+         data: data,
+         meta: %{
+           source: "clinicaltrials.gov",
+           total_studies: length(studies),
+           date_field: "startDateStruct"
+         }
+       }}
     end
   end
 
@@ -85,7 +93,12 @@ defmodule CheironTakeHome.Munger do
       end)
       |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
       |> Enum.map(fn {{source, target}, citations} ->
-        %{"source" => source, "target" => target, "weight" => length(citations), "citations" => citations}
+        %{
+          "source" => source,
+          "target" => target,
+          "weight" => length(citations),
+          "citations" => citations
+        }
       end)
       |> Enum.sort_by(& &1["weight"], :desc)
 
@@ -95,17 +108,22 @@ defmodule CheironTakeHome.Munger do
       {source_label, target_label} = edge_labels(edge_type)
       title = build_title(intent[:subject], "Treatment Network")
 
-      {:ok, %{
-        type: "network_graph",
-        title: title,
-        encoding: %{
-          source: %{field: "source", label: source_label, type: "categorical"},
-          target: %{field: "target", label: target_label, type: "categorical"},
-          weight: %{field: "weight", label: "Number of Trials", type: "quantitative"}
-        },
-        data: data,
-        meta: %{source: "clinicaltrials.gov", total_studies: length(studies), edge_type: Atom.to_string(edge_type)}
-      }}
+      {:ok,
+       %{
+         type: "network_graph",
+         title: title,
+         encoding: %{
+           source: %{field: "source", label: source_label, type: "categorical"},
+           target: %{field: "target", label: target_label, type: "categorical"},
+           weight: %{field: "weight", label: "Number of Trials", type: "quantitative"}
+         },
+         data: data,
+         meta: %{
+           source: "clinicaltrials.gov",
+           total_studies: length(studies),
+           edge_type: Atom.to_string(edge_type)
+         }
+       }}
     end
   end
 
@@ -125,7 +143,9 @@ defmodule CheironTakeHome.Munger do
 
   defp extract_edges(study, :condition_to_sponsor) do
     conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
-    sponsor = get_in(study, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+    sponsor =
+      get_in(study, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
 
     if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
   end

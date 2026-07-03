@@ -13,28 +13,32 @@ defmodule CheironTakeHome.LLMTest do
         assert opts[:url] == "https://api.openai.com/v1/chat/completions"
         assert opts[:method] == :post
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{
-                      "query_cond" => "lung cancer",
-                      "filter_phase" => nil
-                    },
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{
+                         "query_cond" => "lung cancer",
+                         "filter_phase" => nil
+                       },
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
-      assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("How many lung cancer trials are there by phase?")
+      assert {:ok, query_plan} =
+               CheironTakeHome.LLM.interpret("How many lung cancer trials are there by phase?")
+
       assert query_plan.viz_type == "bar_chart"
       assert query_plan.query_params["query_cond"] == "lung cancer"
     end
@@ -42,27 +46,33 @@ defmodule CheironTakeHome.LLMTest do
     test "returns a query plan with time_series for a temporal query" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "time_series",
-                    "query_params" => %{
-                      "query_intr" => "Pembrolizumab"
-                    },
-                    "time_granularity" => "year"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "time_series",
+                       "query_params" => %{
+                         "query_intr" => "Pembrolizumab"
+                       },
+                       "time_granularity" => "year"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
-      assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("How has the number of Pembrolizumab trials changed over time?")
+      assert {:ok, query_plan} =
+               CheironTakeHome.LLM.interpret(
+                 "How has the number of Pembrolizumab trials changed over time?"
+               )
+
       assert query_plan.viz_type == "time_series"
       assert query_plan.query_params["query_intr"] == "Pembrolizumab"
     end
@@ -119,38 +129,42 @@ defmodule CheironTakeHome.LLMTest do
     test "retries once when LLM returns missing viz_type, then succeeds" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "query_params" => %{"query_cond" => "diabetes"}
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "query_params" => %{"query_cond" => "diabetes"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("diabetes trials by phase")
@@ -160,39 +174,43 @@ defmodule CheironTakeHome.LLMTest do
     test "retries once when LLM returns invalid viz_type, then succeeds" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "text_summary",
-                    "query_params" => %{"query_cond" => "cancer"}
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "text_summary",
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("cancer trials by phase")
@@ -202,39 +220,43 @@ defmodule CheironTakeHome.LLMTest do
     test "retries once when LLM returns query_params as non-map, then succeeds" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => "lung cancer"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => "lung cancer"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "lung cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "lung cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("lung cancer trials")
@@ -244,38 +266,42 @@ defmodule CheironTakeHome.LLMTest do
     test "returns error after retry also fails validation" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "text_summary",
-                    "query_params" => %{"query_cond" => "cancer"}
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "text_summary",
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "pie_chart",
-                    "query_params" => %{"query_cond" => "cancer"}
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "pie_chart",
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:error, _reason} = CheironTakeHome.LLM.interpret("cancer trials")
@@ -284,21 +310,23 @@ defmodule CheironTakeHome.LLMTest do
     test "retry includes corrective prompt describing the validation error" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "text_summary",
-                    "query_params" => %{"query_cond" => "cancer"}
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "text_summary",
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         body = Jason.decode!(opts[:body])
@@ -310,22 +338,24 @@ defmodule CheironTakeHome.LLMTest do
         assert last_message["content"] =~ "viz_type"
         assert last_message["content"] =~ "text_summary"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("cancer trials by phase")
@@ -359,22 +389,56 @@ defmodule CheironTakeHome.LLMTest do
         refute system_msg["content"] =~ "page_size",
                "System prompt should not mention page_size — pagination is handled internally"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "test"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "test"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:ok, _plan} = CheironTakeHome.LLM.interpret("test query")
+    end
+
+    test "system prompt includes scatter_plot as a valid viz type" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn opts ->
+        body = Jason.decode!(opts[:body])
+        system_msg = Enum.find(body["messages"], &(&1["role"] == "system"))
+
+        assert system_msg["content"] =~ "scatter_plot",
+               "System prompt should mention scatter_plot as a valid viz type"
+
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "test"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, _plan} = CheironTakeHome.LLM.interpret("test query")

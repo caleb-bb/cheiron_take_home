@@ -11,38 +11,41 @@ defmodule CheironTakeHomeWeb.QueryControllerTest do
       |> expect(:request, fn opts ->
         assert opts[:url] == "https://api.openai.com/v1/chat/completions"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "identificationModule" => %{"nctId" => "NCT00000001"},
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{"nctId" => "NCT00000001"},
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       conn = post(conn, ~p"/api/query", %{"query" => "diabetes trials by phase"})
@@ -76,40 +79,43 @@ defmodule CheironTakeHomeWeb.QueryControllerTest do
     test "passes structured fields through to the pipeline", %{conn: conn} do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
         assert params["query.intr"] == "Pembrolizumab"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE3"]},
-                  "statusModule" => %{"overallStatus" => "RECRUITING"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE3"]},
+                   "statusModule" => %{"overallStatus" => "RECRUITING"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       conn =

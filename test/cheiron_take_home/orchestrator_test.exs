@@ -12,71 +12,86 @@ defmodule CheironTakeHome.OrchestratorTest do
       |> expect(:request, fn opts ->
         assert opts[:url] == "https://api.openai.com/v1/chat/completions"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{
-                      "query_cond" => "lung cancer"
-                    },
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{
+                         "query_cond" => "lung cancer"
+                       },
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       # Second HTTP call: ClinicalTrials.gov search
       |> expect(:request, fn opts ->
         assert opts[:url] == "https://clinicaltrials.gov/api/v2/studies"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "totalCount" => 3,
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "identificationModule" => %{"nctId" => "NCT00000001", "briefTitle" => "Trial A"},
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{
-                    "overallStatus" => "COMPLETED",
-                    "startDateStruct" => %{"date" => "2020-01-15", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "identificationModule" => %{"nctId" => "NCT00000002", "briefTitle" => "Trial B"},
-                  "designModule" => %{"phases" => ["PHASE3"]},
-                  "statusModule" => %{
-                    "overallStatus" => "RECRUITING",
-                    "startDateStruct" => %{"date" => "2021-06-01", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "identificationModule" => %{"nctId" => "NCT00000003", "briefTitle" => "Trial C"},
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{
-                    "overallStatus" => "COMPLETED",
-                    "startDateStruct" => %{"date" => "2020-08-20", "type" => "ACTUAL"}
-                  }
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "totalCount" => 3,
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT00000001",
+                     "briefTitle" => "Trial A"
+                   },
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{
+                     "overallStatus" => "COMPLETED",
+                     "startDateStruct" => %{"date" => "2020-01-15", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT00000002",
+                     "briefTitle" => "Trial B"
+                   },
+                   "designModule" => %{"phases" => ["PHASE3"]},
+                   "statusModule" => %{
+                     "overallStatus" => "RECRUITING",
+                     "startDateStruct" => %{"date" => "2021-06-01", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT00000003",
+                     "briefTitle" => "Trial C"
+                   },
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{
+                     "overallStatus" => "COMPLETED",
+                     "startDateStruct" => %{"date" => "2020-08-20", "type" => "ACTUAL"}
+                   }
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
-      assert {:ok, viz_spec} = CheironTakeHome.Orchestrator.query("How many lung cancer trials are there by phase?")
+      assert {:ok, viz_spec} =
+               CheironTakeHome.Orchestrator.query(
+                 "How many lung cancer trials are there by phase?"
+               )
 
       # Verify the output is a valid viz_spec
       assert viz_spec.type == "bar_chart"
@@ -104,22 +119,24 @@ defmodule CheironTakeHome.OrchestratorTest do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
         # LLM succeeds
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
         # ClinicalTrials fails
@@ -132,61 +149,65 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "full pipeline: network_graph viz type" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "network_graph",
-                    "query_params" => %{"query_cond" => "lung cancer"},
-                    "edge_type" => "condition_to_intervention"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "network_graph",
+                       "query_params" => %{"query_cond" => "lung cancer"},
+                       "edge_type" => "condition_to_intervention"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "conditionsModule" => %{"conditions" => ["Lung Cancer"]},
-                  "armsInterventionsModule" => %{
-                    "interventions" => [
-                      %{"name" => "Pembrolizumab", "type" => "DRUG"},
-                      %{"name" => "Radiation", "type" => "RADIATION"}
-                    ]
-                  },
-                  "sponsorCollaboratorsModule" => %{
-                    "leadSponsor" => %{"name" => "NIH"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "conditionsModule" => %{"conditions" => ["Lung Cancer", "NSCLC"]},
-                  "armsInterventionsModule" => %{
-                    "interventions" => [
-                      %{"name" => "Pembrolizumab", "type" => "DRUG"}
-                    ]
-                  },
-                  "sponsorCollaboratorsModule" => %{
-                    "leadSponsor" => %{"name" => "Pfizer"}
-                  }
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "conditionsModule" => %{"conditions" => ["Lung Cancer"]},
+                   "armsInterventionsModule" => %{
+                     "interventions" => [
+                       %{"name" => "Pembrolizumab", "type" => "DRUG"},
+                       %{"name" => "Radiation", "type" => "RADIATION"}
+                     ]
+                   },
+                   "sponsorCollaboratorsModule" => %{
+                     "leadSponsor" => %{"name" => "NIH"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "conditionsModule" => %{"conditions" => ["Lung Cancer", "NSCLC"]},
+                   "armsInterventionsModule" => %{
+                     "interventions" => [
+                       %{"name" => "Pembrolizumab", "type" => "DRUG"}
+                     ]
+                   },
+                   "sponsorCollaboratorsModule" => %{
+                     "leadSponsor" => %{"name" => "Pfizer"}
+                   }
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
-      assert {:ok, viz_spec} = CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
+      assert {:ok, viz_spec} =
+               CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
 
       assert viz_spec.type == "network_graph"
       assert is_list(viz_spec.data)
@@ -202,25 +223,28 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "returns error when LLM produces no recognized search terms" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"condition" => "cervical cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"condition" => "cervical cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
-      assert {:error, :no_search_terms} = CheironTakeHome.Orchestrator.query("cervical cancer trials")
+      assert {:error, :no_search_terms} =
+               CheironTakeHome.Orchestrator.query("cervical cancer trials")
     end
 
     test "returns error on empty query" do
@@ -233,41 +257,44 @@ defmodule CheironTakeHome.OrchestratorTest do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
         # LLM returns query_cond "cancer" (generic)
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         # The ClinicalTrials API should receive the user's specific condition, not the LLM's
         params = opts[:params]
         assert params["query.cond"] == "lung cancer"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, _viz_spec} =
@@ -279,40 +306,43 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "structured drug_name maps to query_intr" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
         assert params["query.intr"] == "Pembrolizumab"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE3"]},
-                  "statusModule" => %{"overallStatus" => "RECRUITING"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE3"]},
+                   "statusModule" => %{"overallStatus" => "RECRUITING"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, _viz_spec} =
@@ -325,40 +355,43 @@ defmodule CheironTakeHome.OrchestratorTest do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
         # LLM returns garbage keys (no query_cond/query_intr/query_term)
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"condition" => "cervical cancer"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"condition" => "cervical cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
         assert params["query.cond"] == "cervical cancer"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE1"]},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE1"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       # Without structured fields this would fail with :no_search_terms
@@ -371,40 +404,43 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "structured trial_phase maps to filter_phase" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "group_by" => "status"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "group_by" => "status"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
         assert params["filter.advanced"] == "AREA[Phase]PHASE3"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE3"]},
-                  "statusModule" => %{"overallStatus" => "RECRUITING"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE3"]},
+                   "statusModule" => %{"overallStatus" => "RECRUITING"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, _viz_spec} =
@@ -416,52 +452,55 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "structured start_year filters out older studies" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "time_series",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "time_granularity" => "year"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "time_series",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "time_granularity" => "year"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2018-03-01", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2020-06-15", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2022-01-10", "type" => "ACTUAL"}
-                  }
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2018-03-01", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2020-06-15", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2022-01-10", "type" => "ACTUAL"}
+                   }
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, viz_spec} =
@@ -478,52 +517,55 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "structured end_year filters out newer studies" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "time_series",
-                    "query_params" => %{"query_cond" => "diabetes"},
-                    "time_granularity" => "year"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "time_series",
+                       "query_params" => %{"query_cond" => "diabetes"},
+                       "time_granularity" => "year"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2018-03-01", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2020-06-15", "type" => "ACTUAL"}
-                  }
-                }
-              },
-              %{
-                "protocolSection" => %{
-                  "statusModule" => %{
-                    "startDateStruct" => %{"date" => "2022-01-10", "type" => "ACTUAL"}
-                  }
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2018-03-01", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2020-06-15", "type" => "ACTUAL"}
+                   }
+                 }
+               },
+               %{
+                 "protocolSection" => %{
+                   "statusModule" => %{
+                     "startDateStruct" => %{"date" => "2022-01-10", "type" => "ACTUAL"}
+                   }
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, viz_spec} =
@@ -540,37 +582,40 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "query/1 still works without structured fields" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{"query_cond" => "asthma"},
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{"query_cond" => "asthma"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, viz_spec} = CheironTakeHome.Orchestrator.query("asthma trials by phase")
@@ -582,47 +627,81 @@ defmodule CheironTakeHome.OrchestratorTest do
     test "LLM-supplied page_size is dropped from API params" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "choices" => [
-              %{
-                "message" => %{
-                  "content" => Jason.encode!(%{
-                    "viz_type" => "bar_chart",
-                    "query_params" => %{
-                      "query_cond" => "diabetes",
-                      "page_size" => 5
-                    },
-                    "group_by" => "phase"
-                  })
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => %{
+                         "query_cond" => "diabetes",
+                         "page_size" => 5
+                       },
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
+
         refute Map.has_key?(params, "pageSize"),
                "LLM-supplied page_size should not reach the API"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "designModule" => %{"phases" => ["PHASE2"]},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "designModule" => %{"phases" => ["PHASE2"]},
+                   "statusModule" => %{"overallStatus" => "COMPLETED"}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       assert {:ok, _viz_spec} = CheironTakeHome.Orchestrator.query("diabetes trials by phase")
+    end
+  end
+
+  describe "query/2 with scatter_plot" do
+    test "scatter_plot viz_type flows through the pipeline" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, 2, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "scatter_plot",
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:ok, viz_spec} =
+               CheironTakeHome.Orchestrator.query("show individual cancer trial sizes")
+
+      assert viz_spec.type == "scatter_plot"
     end
   end
 end

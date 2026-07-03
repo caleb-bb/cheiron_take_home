@@ -15,21 +15,25 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
         assert opts[:params]["pageSize"] == 100
         assert opts[:params]["format"] == "json"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "totalCount" => 1,
-            "studies" => [
-              %{
-                "protocolSection" => %{
-                  "identificationModule" => %{"nctId" => "NCT00000001", "briefTitle" => "Test Trial"},
-                  "statusModule" => %{"overallStatus" => "COMPLETED"},
-                  "designModule" => %{"phases" => ["PHASE3"]}
-                }
-              }
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "totalCount" => 1,
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT00000001",
+                     "briefTitle" => "Test Trial"
+                   },
+                   "statusModule" => %{"overallStatus" => "COMPLETED"},
+                   "designModule" => %{"phases" => ["PHASE3"]}
+                 }
+               }
+             ]
+           }
+         }}
       end)
 
       params = %{query_cond: "diabetes", page_size: 100}
@@ -43,16 +47,17 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
       |> expect(:request, fn opts ->
         assert opts[:params]["query.intr"] == "Pembrolizumab"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "totalCount" => 2,
-            "studies" => [
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT00000002"}}},
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT00000003"}}}
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "totalCount" => 2,
+             "studies" => [
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT00000002"}}},
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT00000003"}}}
+             ]
+           }
+         }}
       end)
 
       params = %{query_intr: "Pembrolizumab"}
@@ -75,7 +80,9 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
         {:ok, %{status: 400, body: "`filter.phase` is unknown parameter"}}
       end)
 
-      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert {:error, %{reason: reason}} =
+               CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+
       assert reason =~ "400"
     end
 
@@ -85,7 +92,9 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
         {:ok, %{status: 404, body: "Not Found"}}
       end)
 
-      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert {:error, %{reason: reason}} =
+               CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+
       assert reason =~ "404"
     end
 
@@ -95,7 +104,9 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
         {:ok, %{status: 500, body: "Internal Server Error"}}
       end)
 
-      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert {:error, %{reason: reason}} =
+               CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+
       assert reason =~ "500"
     end
 
@@ -105,7 +116,9 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
         {:ok, %{status: 503, body: "Service Unavailable"}}
       end)
 
-      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert {:error, %{reason: reason}} =
+               CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+
       assert reason =~ "503"
     end
   end
@@ -114,31 +127,35 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
     test "fetches multiple pages when nextPageToken is present" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT001"}}}
-            ],
-            "nextPageToken" => "token_page2"
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT001"}}}
+             ],
+             "nextPageToken" => "token_page2"
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT002"}}}
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT002"}}}
+             ]
+           }
+         }}
       end)
 
       assert {:ok, studies} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
       assert length(studies) == 2
 
-      nct_ids = Enum.map(studies, &get_in(&1, ["protocolSection", "identificationModule", "nctId"]))
+      nct_ids =
+        Enum.map(studies, &get_in(&1, ["protocolSection", "identificationModule", "nctId"]))
+
       assert "NCT001" in nct_ids
       assert "NCT002" in nct_ids
     end
@@ -148,23 +165,25 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
       |> expect(:request, fn opts ->
         refute Map.has_key?(opts[:params], "pageToken")
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [%{"protocolSection" => %{}}],
-            "nextPageToken" => "abc123"
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [%{"protocolSection" => %{}}],
+             "nextPageToken" => "abc123"
+           }
+         }}
       end)
       |> expect(:request, fn opts ->
         assert opts[:params]["pageToken"] == "abc123"
 
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [%{"protocolSection" => %{}}]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [%{"protocolSection" => %{}}]
+           }
+         }}
       end)
 
       assert {:ok, _studies} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
@@ -174,13 +193,14 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
       # Expect exactly 5 requests (max_pages), not 6
       CheironTakeHome.MockHttpClient
       |> expect(:request, 5, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [%{"protocolSection" => %{}}],
-            "nextPageToken" => "keep_going"
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [%{"protocolSection" => %{}}],
+             "nextPageToken" => "keep_going"
+           }
+         }}
       end)
 
       assert {:ok, studies} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
@@ -190,15 +210,16 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
     test "makes only one request when no nextPageToken" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT001"}}},
-              %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT002"}}}
-            ]
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT001"}}},
+               %{"protocolSection" => %{"identificationModule" => %{"nctId" => "NCT002"}}}
+             ]
+           }
+         }}
       end)
 
       assert {:ok, studies} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
@@ -208,13 +229,14 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
     test "returns error if a subsequent page fails" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
-        {:ok, %{
-          status: 200,
-          body: %{
-            "studies" => [%{"protocolSection" => %{}}],
-            "nextPageToken" => "page2"
-          }
-        }}
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [%{"protocolSection" => %{}}],
+             "nextPageToken" => "page2"
+           }
+         }}
       end)
       |> expect(:request, fn _opts ->
         {:ok, %{status: 500, body: "Internal Server Error"}}
