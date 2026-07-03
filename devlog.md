@@ -129,3 +129,19 @@ We're gonna need `Req` for http requests, `Mox` for mocking API calls, `stream_d
 ### [Prompt 2](claude_code_prompts/prompt_2.md)
 
 This prompt creates the failing tests for the API wrapper modules. There will be another prompt to make the tests pass. At that point, I'm going to pause prompting in order to stop and test the API modules in-terminal. If everything shakes out ok, then I'll move on. But if the API responses have unexpected shapes, I'll copy the shape of the responses into Claude Chat, ask for new prompts to fix the tests based on those, run those prompts to revise the tests, allow the tests to fail, and then prompt Claude Code to modify the wrapper modules so that those tests will pass.
+
+### [Prompt 3](claude_code_prompts/prompt_3.md)
+
+See above. This is a series of prompts that I gave to Claude Code as a result of it screwing up the modules.
+
+I tested the http client in an `iex` REPL session and it's a good thing I did because it defaults to `nil` in a dev environment which is pants-on-head stupid. After we fixed that, I got this error:
+
+```elixir
+iex(1)> CheironTakeHome.LLM.interpret("How many studies are there for lung cancer?")
+** (Jason.DecodeError) unexpected byte at position 0: 0x60 ("`")
+    (jason 1.4.5) lib/jason.ex:92: Jason.decode!/2
+    (cheiron_take_home 0.1.0) lib/cheiron_take_home/llm.ex:27: CheironTakeHome.LLM.handle_response/1
+    iex:1: (file)
+```
+
+which I fed to Claude Code without commentary. It seems to be working in the REPL now.

@@ -8,7 +8,8 @@
 import Config
 
 config :cheiron_take_home,
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime],
+  http_client: CheironTakeHome.ReqHttpClient
 
 # Configure the endpoint
 config :cheiron_take_home, CheironTakeHomeWeb.Endpoint,
