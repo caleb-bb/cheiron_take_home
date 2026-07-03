@@ -315,6 +315,8 @@ Each object in `data` has `"source"` (string, e.g. a condition name), `"target"`
 
 **Constrained LLM output.** The system prompt explicitly enumerates valid values for `viz_type`, `group_by`, `query_params` keys, and `time_granularity`. The orchestrator and munger validate these downstream as a safety net, returning typed errors rather than crashing on unexpected LLM output.
 
+**Automatic pagination.** The ClinicalTrials.gov API client follows `nextPageToken` to fetch multiple pages of results transparently. A hard cap of 5 pages prevents runaway fetches on broad queries. The orchestrator and munger are unaware of pagination — they receive a flat list of studies regardless of how many pages it took to collect them. Page size is controlled internally, not by the LLM.
+
 # Limitations and Future Work (AI generated)
 
 **Three viz types.** Bar charts, time series, and network graphs are implemented. The assignment also suggests scatter plots and histograms, which could be added with new Munger function heads and LLM prompt constraints.
@@ -323,9 +325,7 @@ Each object in `data` has `"source"` (string, e.g. a condition name), `"target"`
 
 **Structured fields don't skip the LLM call.** The optional `condition`, `drug_name`, etc. fields override LLM-inferred parameters after the LLM runs. A further optimization would skip the LLM call entirely when the user provides enough structured fields to build the query plan directly.
 
-**Single API page.** Time series queries fetch 100 studies; bar charts fetch 10. For conditions with thousands of trials (e.g., "cancer"), this is a sample, not a census. Pagination support would give more accurate counts.
-
-**No retry/validation on LLM output.** If the LLM returns a malformed plan (wrong `viz_type`, missing `query_params`), the system errors. A production system would validate the plan and retry with a corrective prompt.
+**Page cap.** The API client paginates automatically using `nextPageToken`, but stops after 5 pages (up to 500 studies at page_size 100) to avoid runaway fetches for broad queries like "cancer". For conditions with tens of thousands of trials this is still a sample, not a census.
 
 **No frontend.** The spec is designed to be renderable by any charting library (D3, Vega-Lite, Recharts), but no demo frontend is included.
 
