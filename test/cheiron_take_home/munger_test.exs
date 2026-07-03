@@ -230,6 +230,128 @@ defmodule CheironTakeHome.MungerTest do
     end
   end
 
+  # --- Bar Chart by Phase: Citations ---
+
+  describe "build/2 bar_chart by phase citations" do
+    property "every data point has a citations list" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert Map.has_key?(point, "citations"), "Data point missing citations key"
+          assert is_list(point["citations"])
+        end)
+      end
+    end
+
+    property "every citation has nct_id and non-empty excerpt" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          Enum.each(point["citations"], fn citation ->
+            assert is_binary(citation["nct_id"]) and citation["nct_id"] != ""
+            assert is_binary(citation["excerpt"]) and citation["excerpt"] != ""
+          end)
+        end)
+      end
+    end
+
+    property "every citation nct_id exists in input studies" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        input_nct_ids =
+          studies
+          |> Enum.map(&get_in(&1, ["protocolSection", "identificationModule", "nctId"]))
+          |> MapSet.new()
+
+        Enum.each(viz_spec.data, fn point ->
+          Enum.each(point["citations"], fn citation ->
+            assert citation["nct_id"] in input_nct_ids,
+                   "Citation nct_id #{citation["nct_id"]} not found in input studies"
+          end)
+        end)
+      end
+    end
+
+    property "citations in a phase bucket actually have that phase" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct = Map.new(studies, fn s ->
+          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+        end)
+
+        Enum.each(viz_spec.data, fn point ->
+          phase = point["phase"]
+
+          Enum.each(point["citations"], fn citation ->
+            study = studies_by_nct[citation["nct_id"]]
+            phases = get_in(study, ["protocolSection", "designModule", "phases"]) || []
+
+            assert phase in phases,
+                   "Citation #{citation["nct_id"]} in #{phase} bucket but study has phases #{inspect(phases)}"
+          end)
+        end)
+      end
+    end
+
+    property "citation count equals trial_count for each data point" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "phase"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert length(point["citations"]) == point["trial_count"],
+                 "Citations count #{length(point["citations"])} != trial_count #{point["trial_count"]}"
+        end)
+      end
+    end
+  end
+
+  # --- Bar Chart by Status: Citations ---
+
+  describe "build/2 bar_chart by status citations" do
+    property "citations in a status bucket actually have that status" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "status"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct = Map.new(studies, fn s ->
+          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+        end)
+
+        Enum.each(viz_spec.data, fn point ->
+          status = point["status"]
+
+          Enum.each(point["citations"], fn citation ->
+            study = studies_by_nct[citation["nct_id"]]
+            study_status = get_in(study, ["protocolSection", "statusModule", "overallStatus"])
+
+            assert status == study_status,
+                   "Citation #{citation["nct_id"]} in #{status} bucket but study has status #{study_status}"
+          end)
+        end)
+      end
+    end
+
+    property "citation count equals trial_count for each data point" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :bar_chart, group_by: "status"}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert length(point["citations"]) == point["trial_count"]
+        end)
+      end
+    end
+  end
+
   # --- Bar Chart Error Cases ---
 
   describe "build/2 with bar_chart error cases" do
@@ -355,6 +477,61 @@ defmodule CheironTakeHome.MungerTest do
         assert_encoding_channels(viz_spec)
         assert_encoding_data_coherence(viz_spec)
         assert_time_series_shape(viz_spec)
+      end
+    end
+  end
+
+  # --- Time Series: Citations ---
+
+  describe "build/2 time_series citations" do
+    property "every data point has a citations list with nct_id and excerpt" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :time_series, time_granularity: :year}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert is_list(point["citations"])
+
+          Enum.each(point["citations"], fn citation ->
+            assert is_binary(citation["nct_id"]) and citation["nct_id"] != ""
+            assert is_binary(citation["excerpt"]) and citation["excerpt"] != ""
+          end)
+        end)
+      end
+    end
+
+    property "citations in a period bucket have start dates in that period" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :time_series, time_granularity: :year}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct = Map.new(studies, fn s ->
+          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+        end)
+
+        Enum.each(viz_spec.data, fn point ->
+          period = point["period"]
+
+          Enum.each(point["citations"], fn citation ->
+            study = studies_by_nct[citation["nct_id"]]
+            date = get_in(study, ["protocolSection", "statusModule", "startDateStruct", "date"])
+            study_year = String.slice(date, 0, 4)
+
+            assert study_year == period,
+                   "Citation #{citation["nct_id"]} in period #{period} but study started in #{study_year}"
+          end)
+        end)
+      end
+    end
+
+    property "citation count equals count for each data point" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :time_series, time_granularity: :year}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert length(point["citations"]) == point["count"]
+        end)
       end
     end
   end
@@ -506,6 +683,68 @@ defmodule CheironTakeHome.MungerTest do
     end
   end
 
+  # --- Network Graph (condition_to_intervention): Citations ---
+
+  describe "build/2 network_graph condition_to_intervention citations" do
+    property "every data point has a citations list with nct_id and excerpt" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert is_list(point["citations"])
+
+          Enum.each(point["citations"], fn citation ->
+            assert is_binary(citation["nct_id"]) and citation["nct_id"] != ""
+            assert is_binary(citation["excerpt"]) and citation["excerpt"] != ""
+          end)
+        end)
+      end
+    end
+
+    property "citations on an edge have both the source condition and target intervention" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct = Map.new(studies, fn s ->
+          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+        end)
+
+        Enum.each(viz_spec.data, fn point ->
+          source = point["source"]
+          target = point["target"]
+
+          Enum.each(point["citations"], fn citation ->
+            study = studies_by_nct[citation["nct_id"]]
+            conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+
+            interventions =
+              (get_in(study, ["protocolSection", "armsInterventionsModule", "interventions"]) || [])
+              |> Enum.map(& &1["name"])
+
+            assert source in conditions,
+                   "Citation #{citation["nct_id"]} on edge from #{source} but study has conditions #{inspect(conditions)}"
+
+            assert target in interventions,
+                   "Citation #{citation["nct_id"]} on edge to #{target} but study has interventions #{inspect(interventions)}"
+          end)
+        end)
+      end
+    end
+
+    property "citation count equals weight for each edge" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_intervention}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert length(point["citations"]) == point["weight"]
+        end)
+      end
+    end
+  end
+
   # --- Network Graph Properties (condition_to_sponsor) ---
 
   describe "build/2 with network_graph viz_type (condition_to_sponsor)" do
@@ -564,6 +803,49 @@ defmodule CheironTakeHome.MungerTest do
         assert_encoding_channels(viz_spec)
         assert_encoding_data_coherence(viz_spec)
         assert_network_graph_shape(viz_spec)
+      end
+    end
+  end
+
+  # --- Network Graph (condition_to_sponsor): Citations ---
+
+  describe "build/2 network_graph condition_to_sponsor citations" do
+    property "citations on an edge have both the source condition and target sponsor" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        studies_by_nct = Map.new(studies, fn s ->
+          {get_in(s, ["protocolSection", "identificationModule", "nctId"]), s}
+        end)
+
+        Enum.each(viz_spec.data, fn point ->
+          source = point["source"]
+          target = point["target"]
+
+          Enum.each(point["citations"], fn citation ->
+            study = studies_by_nct[citation["nct_id"]]
+            conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
+            sponsor = get_in(study, ["protocolSection", "sponsorCollaboratorsModule", "leadSponsor", "name"])
+
+            assert source in conditions,
+                   "Citation #{citation["nct_id"]} on edge from #{source} but study has conditions #{inspect(conditions)}"
+
+            assert target == sponsor,
+                   "Citation #{citation["nct_id"]} on edge to #{target} but study has sponsor #{sponsor}"
+          end)
+        end)
+      end
+    end
+
+    property "citation count equals weight for each edge" do
+      check all(studies <- studies_gen()) do
+        viz_intent = %{viz_type: :network_graph, edge_type: :condition_to_sponsor}
+        {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        Enum.each(viz_spec.data, fn point ->
+          assert length(point["citations"]) == point["weight"]
+        end)
       end
     end
   end
