@@ -265,7 +265,7 @@ The response wraps a visualization specification under a `visualization` key:
 
 | Field | Type | Present | Description |
 |---|---|---|---|
-| `type` | `"bar_chart"`, `"time_series"`, or `"network_graph"` | Always | Visualization type |
+| `type` | `"bar_chart"`, `"time_series"`, `"network_graph"`, or `"scatter_plot"` | Always | Visualization type |
 | `title` | string | Always | Human-readable title incorporating the search subject |
 | `encoding` | object | Always | Maps data fields to visual channels (see below) |
 | `data` | array of objects | Always | Data points to render; keys match `encoding` field names |
@@ -274,7 +274,7 @@ The response wraps a visualization specification under a `visualization` key:
 
 ### Encoding channels
 
-Each channel in `encoding` (keyed by `x`/`y` for charts, or `source`/`target`/`weight` for network graphs) has:
+Each channel in `encoding` (keyed by `x`/`y` for charts, `source`/`target`/`weight` for network graphs, or `x`/`y`/`color` for scatter plots) has:
 
 | Field | Type | Description |
 |---|---|---|
@@ -295,9 +295,13 @@ Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`), `"c
 
 Each object in `data` has `"source"` (string, e.g. a condition name), `"target"` (string, e.g. an intervention or sponsor name), `"weight"` (integer, number of trials linking the pair), and `"citations"` (array of citation objects). The `meta` object includes `edge_type` (`"condition_to_intervention"` or `"condition_to_sponsor"`).
 
+### Scatter plot data points
+
+Each object in `data` represents an individual study with `"start_year"` (integer), `"enrollment"` (integer), `"nct_id"` (string), and `"label"` (string, the trial's brief title). Unlike the other viz types, scatter plots show individual studies rather than aggregates, so `nct_id` and `label` live directly on the data point. When `color_by` is set, a categorical field (`"phase"` or `"status"`) is also present; multi-phase studies join phases with `"/"` (e.g. `"PHASE1/PHASE2"`). The optional `color` encoding channel maps to this field.
+
 ### Deep citations
 
-Every data point includes a `citations` array linking the aggregated value back to the individual trial records that contributed to it. Each citation has:
+Every aggregated data point (bar chart, time series, network graph) includes a `citations` array linking the value back to the individual trial records that contributed to it. Scatter plots do not use citations — each point already IS a single study with `nct_id` and `label` directly on it. Each citation has:
 
 | Field | Type | Description |
 |---|---|---|
@@ -343,7 +347,7 @@ The number of citations always equals the count for that data point (`trial_coun
 
 # Limitations and Future Work (AI generated)
 
-**Three viz types.** Bar charts, time series, and network graphs are implemented. The assignment also suggests scatter plots and histograms, which could be added with new Munger function heads and LLM prompt constraints.
+**Four viz types.** Bar charts, time series, network graphs, and scatter plots are implemented. The assignment also suggests histograms, which could be added with a new Munger function head and LLM prompt constraint.
 
 **Structured fields don't skip the LLM call.** The optional `condition`, `drug_name`, etc. fields override LLM-inferred parameters after the LLM runs. A further optimization would skip the LLM call entirely when the user provides enough structured fields to build the query plan directly.
 
