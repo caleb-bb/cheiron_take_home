@@ -188,3 +188,9 @@ These are fairly simple Claude Code prompts but they serve to detect anything ve
   │ 10  │ COHERENCE: encoding field not   │ encoding-data coherence helper                      │
   │     │ in data                         │                                                     │
   └─────┴─────────────────────────────────┴─────────────────────────────────────────────────────┘
+
+### [Prompt 7](claude_code_prompts/prompt_7.md)
+
+Smoke tests for orchestrator and make it pass. I said earlier I could wait on integration tests, but these are pretty simple (hence "smoke tests"). Ideally, these are just here to make sure that the orchestrator calls the functions it's supposed to call in the order it's supposed to call then and returns an error when each step fails. These integration tests, in a real app, would become more complex as the app matures because these pipelines can fail at multiple levels.
+
+Minor changes made to the munger here. `granularity` already occurs in the x-axis of the maps so we don't need it in metadata. `date_field` added to metadata.

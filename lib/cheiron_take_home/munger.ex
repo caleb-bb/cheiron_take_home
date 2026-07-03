@@ -15,14 +15,14 @@ defmodule CheironTakeHome.Munger do
 
     {:ok, %{
       type: "bar_chart",
-      title: "Trials by Phase",
+      title: "Clinical Trials by Phase",
       encoding: %{
-        x: %{field: "phase", label: "Phase", type: "categorical"},
-        y: %{field: "trial_count", label: "Trial Count", type: "quantitative"}
+        x: %{field: "phase", label: "Trial Phase", type: "categorical"},
+        y: %{field: "trial_count", label: "Number of Trials", type: "quantitative"}
       },
       data: data,
-      meta: %{total_studies: length(studies)},
-      sort: %{field: "trial_count", order: "descending"}
+      meta: %{source: "clinicaltrials.gov", total_studies: length(studies)},
+      sort: %{field: "phase", order: "ordinal", sequence: ["EARLY_PHASE1", "PHASE1", "PHASE2", "PHASE3", "PHASE4", "NA"]}
     }}
   end
 
@@ -44,13 +44,13 @@ defmodule CheironTakeHome.Munger do
 
     {:ok, %{
       type: "time_series",
-      title: "Trials Over Time",
+      title: "Clinical Trials Over Time",
       encoding: %{
-        x: %{field: "period", label: "Period", type: "temporal", granularity: gran_str},
-        y: %{field: "count", label: "Count", type: "quantitative"}
+        x: %{field: "period", label: "Year", type: "temporal", granularity: gran_str},
+        y: %{field: "count", label: "Number of Trials Started", type: "quantitative"}
       },
       data: data,
-      meta: %{total_studies: length(studies), granularity: gran_str}
+      meta: %{source: "clinicaltrials.gov", total_studies: length(studies), date_field: "startDateStruct"}
     }}
   end
 
