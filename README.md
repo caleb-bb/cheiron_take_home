@@ -285,15 +285,37 @@ Each channel in `encoding` (keyed by `x`/`y` for charts, or `source`/`target`/`w
 
 ### Bar chart data points
 
-Each object in `data` has a categorical field (the `group_by` value, e.g. `"phase"` or `"status"`) and `"trial_count"` (integer).
+Each object in `data` has a categorical field (the `group_by` value, e.g. `"phase"` or `"status"`), `"trial_count"` (integer), and `"citations"` (array of citation objects).
 
 ### Time series data points
 
-Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`) and `"count"` (integer).
+Each object in `data` has `"period"` (string, e.g. `"2024"` or `"2024-Q3"`), `"count"` (integer), and `"citations"` (array of citation objects).
 
 ### Network graph data points
 
-Each object in `data` has `"source"` (string, e.g. a condition name), `"target"` (string, e.g. an intervention or sponsor name), and `"weight"` (integer, number of trials linking the pair). The `meta` object includes `edge_type` (`"condition_to_intervention"` or `"condition_to_sponsor"`).
+Each object in `data` has `"source"` (string, e.g. a condition name), `"target"` (string, e.g. an intervention or sponsor name), `"weight"` (integer, number of trials linking the pair), and `"citations"` (array of citation objects). The `meta` object includes `edge_type` (`"condition_to_intervention"` or `"condition_to_sponsor"`).
+
+### Deep citations
+
+Every data point includes a `citations` array linking the aggregated value back to the individual trial records that contributed to it. Each citation has:
+
+| Field | Type | Description |
+|---|---|---|
+| `nct_id` | string | ClinicalTrials.gov identifier (e.g. `"NCT01234567"`) |
+| `excerpt` | string | The trial's `briefTitle` from the API response |
+
+```json
+{
+  "phase": "PHASE3",
+  "trial_count": 2,
+  "citations": [
+    {"nct_id": "NCT01234567", "excerpt": "Phase 3 Study of Pembrolizumab in NSCLC"},
+    {"nct_id": "NCT02345678", "excerpt": "Randomized Trial of Nivolumab for Lung Cancer"}
+  ]
+}
+```
+
+The number of citations always equals the count for that data point (`trial_count`, `count`, or `weight` depending on viz type). Citations are property-tested: every `nct_id` traces to an input study, and every citation in a bucket actually belongs in that bucket (e.g., a citation in the "PHASE3" bucket must have PHASE3 in its phases).
 
 ## Response (error)
 
@@ -315,13 +337,13 @@ Each object in `data` has `"source"` (string, e.g. a condition name), `"target"`
 
 **Constrained LLM output.** The system prompt explicitly enumerates valid values for `viz_type`, `group_by`, `query_params` keys, and `time_granularity`. The orchestrator and munger validate these downstream as a safety net, returning typed errors rather than crashing on unexpected LLM output.
 
+**Deep citations.** Every data point carries a `citations` array with `nct_id` and `excerpt` for each trial that contributed to it. This was implemented by replacing `Enum.frequencies` with `Enum.group_by` in the Munger, carrying study identity through the aggregation pipeline instead of discarding it. Citations are property-tested: 15 properties verify that every citation traces to a real input study and belongs in the correct bucket.
+
 **Automatic pagination.** The ClinicalTrials.gov API client follows `nextPageToken` to fetch multiple pages of results transparently. A hard cap of 5 pages prevents runaway fetches on broad queries. The orchestrator and munger are unaware of pagination — they receive a flat list of studies regardless of how many pages it took to collect them. Page size is controlled internally, not by the LLM.
 
 # Limitations and Future Work (AI generated)
 
 **Three viz types.** Bar charts, time series, and network graphs are implemented. The assignment also suggests scatter plots and histograms, which could be added with new Munger function heads and LLM prompt constraints.
-
-**No deep citations.** Data points don't trace back to individual `nct_id`s or text excerpts. The data is there in the API response (each study has `nctId` and `briefTitle`), but the Munger aggregates it away. Adding citations would mean carrying study references through the frequency counting.
 
 **Structured fields don't skip the LLM call.** The optional `condition`, `drug_name`, etc. fields override LLM-inferred parameters after the LLM runs. A further optimization would skip the LLM call entirely when the user provides enough structured fields to build the query plan directly.
 
