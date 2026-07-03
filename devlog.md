@@ -69,7 +69,7 @@ ABSTRACTION: As Iteration 1, but user input now includes a set of extra fields b
 
 ABSTRACTION: As Iteration 2, but now we want to support deep citations. That means that, for any given trial, we include at least an `nct_id`. No new visualization types required, although we may add citations to existing types, e.g. a mouseover of a scatterplot may show a tooltip with extra information about a given data point.
 
-### Iteration 3
+### Iteration 4
 
 ABSTRACTION: As Iteration 3, but with an at least **moderately sexy** front-end.
 
@@ -80,10 +80,11 @@ Given the above considerations, I'm electing to do a from-scratch project in Eli
 
 ### MVP (Iteration 1)
 
-This holds no state, but the processing is fairly complicated: two API wrappers, a munger, and an input layer. This holds no state so the input layer might as well be the orchestration layer as well. The LLM APi needs its own wrapper and we'll assume OpenAI at this point, although if I had more time I'd make it agnostic about which LLM platform is being used. The architecture at MVP is input layer → LLM wrapper → ClinicalStudies API wrapper → munger → output.
+This holds no state, but the processing is fairly complicated: two API wrappers, a munger, and an input layer. This holds no state so the input layer might as well be the orchestration layer as well. The LLM APi needs its own wrapper and we'll assume OpenAI at this point, although if I had more time I'd make it agnostic about which LLM platform is being used. The architecture at MVP is orchestrator/input layer → LLM wrapper → orchestrator → ClinicalStudies API wrapper → orchestrator → munger → orchestrator/output.
+
 
 1. Spin up an Elixir/Phoenix project without a front-end using  `mix phx.new . --no-html --no-assets --no-ecto`.
-2. Unit testing: property-based tests for the munger (specs for the spec!), mocks for API calls from both API boundary layers. No integration tests yet because we may need to split modules later on and integration tests will just slow that down. Tests for the munger must cover specs for both bar charts and time series. TESTS MUST FAIL.
+2. Unit testing: property-based tests for the munger (specs for the spec!), mocks for API calls from both API boundary layers. No integration tests yet because we may need to split modules later on and integration tests will just slow that down. Tests for the munger must cover specs for both bar charts and time series. The property-based tests *must force traceability between the spec and the data that came back from the ClinicalTrials API!!*. TESTS MUST FAIL.
 3. Build the two API wrappers, two commits, tests pass. The LLM API wrapper defines a struct that contains both the query params for the ClinicalTrials.gov API *and* the visualization choice, with a hardcoded list of allowable choices. The latter may eventually affect the former.
 4. Build the munger, property tests pass.
 5. Build the orchestrator. Smoke tests at most because anything else is an integration test. If we need smoke tests, build them first.
@@ -95,6 +96,7 @@ This is where the LLM wrapper earns its keep. The whole point of the LLM here is
 1. Revise the LLM wrapper tests to include the extra query param fields; this is the step where we define which are required and which are optional. This is where we add extra visualization types. The LLM TESTS MUST FAIL. Then, revise the wrapper to make them pass.
 2. As 1, but with the ClinicalStudies wrapper. 
 3. Revise the munger test to cover the two new visualization types with specs appropriate to eac. TESTS MUST FAIL. Revise the munger module to make the tests pass.
+4. Integration testing. Which shakes out to "test the orchestrator"
 
 ### Iteration 3
 This is where we include deep citations. Since deep citations come from the ClinicalTrials API, this means modifying the wrapper thereof.
