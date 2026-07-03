@@ -390,7 +390,7 @@ defmodule CheironTakeHome.OrchestratorTest do
       end)
       |> expect(:request, fn opts ->
         params = opts[:params]
-        assert params["filter.phase"] == "PHASE3"
+        assert params["filter.advanced"] == "AREA[Phase]PHASE3"
 
         {:ok, %{
           status: 200,

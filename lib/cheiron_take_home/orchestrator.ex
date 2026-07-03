@@ -17,6 +17,7 @@ defmodule CheironTakeHome.Orchestrator do
     with {:ok, query_plan} <- CheironTakeHome.LLM.interpret(query_string),
          {api_params, viz_intent} <- split_query_plan(query_plan),
          api_params = merge_structured_fields(api_params, structured_fields),
+         viz_intent = update_subject(viz_intent, api_params),
          viz_intent = merge_year_filters(viz_intent, structured_fields),
          :ok <- validate_search_params(api_params),
          api_params = ensure_page_size(api_params, viz_intent),
@@ -50,15 +51,28 @@ defmodule CheironTakeHome.Orchestrator do
 
     subject = api_params[:query_cond] || api_params[:query_intr] || api_params[:query_term]
 
+    viz_type = to_viz_type(query_plan.viz_type)
+
     viz_intent =
-      %{viz_type: to_viz_type(query_plan.viz_type)}
+      %{viz_type: viz_type}
       |> maybe_put(:group_by, query_plan.group_by)
       |> maybe_put(:time_granularity, to_granularity(query_plan.time_granularity))
       |> maybe_put(:edge_type, to_edge_type(query_plan[:edge_type]))
       |> maybe_put(:subject, subject)
+      |> ensure_defaults(viz_type)
 
     {api_params, viz_intent}
   end
+
+  defp ensure_defaults(viz_intent, :time_series) do
+    Map.put_new(viz_intent, :time_granularity, :year)
+  end
+
+  defp ensure_defaults(viz_intent, :network_graph) do
+    Map.put_new(viz_intent, :edge_type, :condition_to_intervention)
+  end
+
+  defp ensure_defaults(viz_intent, _), do: viz_intent
 
   defp to_viz_type("bar_chart"), do: :bar_chart
   defp to_viz_type("time_series"), do: :time_series
@@ -104,6 +118,13 @@ defmodule CheironTakeHome.Orchestrator do
         value -> Map.put(acc, api_key, value)
       end
     end)
+  end
+
+  defp update_subject(viz_intent, api_params) do
+    case api_params[:query_cond] || api_params[:query_intr] || api_params[:query_term] do
+      nil -> viz_intent
+      subject -> Map.put(viz_intent, :subject, subject)
+    end
   end
 
   defp merge_year_filters(viz_intent, structured_fields) do

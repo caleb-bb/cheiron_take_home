@@ -229,9 +229,17 @@ iex> CheironTakeHome.Orchestrator.query("How many lung cancer trials are in each
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `query` | string | Yes | Natural language question about clinical trials. Must be non-empty. |
+| `condition` | string | No | Condition or disease (e.g. `"lung cancer"`). Overrides LLM-inferred condition. |
+| `drug_name` | string | No | Intervention or drug (e.g. `"Pembrolizumab"`). Overrides LLM-inferred intervention. |
+| `trial_phase` | string | No | Trial phase filter (e.g. `"PHASE3"`). |
+| `sponsor` | string | No | Sponsor name. Used as a general search term. |
+| `start_year` | integer | No | Exclude trials that started before this year. |
+| `end_year` | integer | No | Exclude trials that started after this year. |
+
+Structured fields are optional and bypass LLM interpretation for the parameters they cover. When provided, they override the corresponding LLM-inferred values — this gives deterministic search behavior and lower latency when the caller already knows the query parameters.
 
 ```json
-{"query": "How many lung cancer trials are in each phase?"}
+{"query": "How has trial activity changed over time?", "drug_name": "Pembrolizumab", "start_year": 2015}
 ```
 
 ## Response (success)
@@ -313,7 +321,7 @@ Each object in `data` has `"source"` (string, e.g. a condition name), `"target"`
 
 **No deep citations.** Data points don't trace back to individual `nct_id`s or text excerpts. The data is there in the API response (each study has `nctId` and `briefTitle`), but the Munger aggregates it away. Adding citations would mean carrying study references through the frequency counting.
 
-**No structured input fields.** The assignment suggests optional fields like `drug_name`, `condition`, `trial_phase`. These would bypass LLM interpretation for known parameters, reducing latency and improving reliability. The orchestrator could merge user-supplied fields with LLM-inferred ones.
+**Structured fields don't skip the LLM call.** The optional `condition`, `drug_name`, etc. fields override LLM-inferred parameters after the LLM runs. A further optimization would skip the LLM call entirely when the user provides enough structured fields to build the query plan directly.
 
 **Single API page.** Time series queries fetch 100 studies; bar charts fetch 10. For conditions with thousands of trials (e.g., "cancer"), this is a sample, not a census. Pagination support would give more accurate counts.
 
