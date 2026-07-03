@@ -253,31 +253,10 @@ defmodule CheironTakeHome.OrchestratorTest do
   end
 
   describe "query/2 with structured fields" do
-    test "structured condition overrides LLM-inferred query_cond" do
+    test "structured condition is used when LLM is skipped" do
+      # "trials by phase" + condition → deterministic bar_chart, no LLM call
       CheironTakeHome.MockHttpClient
-      |> expect(:request, fn _opts ->
-        # LLM returns query_cond "cancer" (generic)
-        {:ok,
-         %{
-           status: 200,
-           body: %{
-             "choices" => [
-               %{
-                 "message" => %{
-                   "content" =>
-                     Jason.encode!(%{
-                       "viz_type" => "bar_chart",
-                       "query_params" => %{"query_cond" => "cancer"},
-                       "group_by" => "phase"
-                     })
-                 }
-               }
-             ]
-           }
-         }}
-      end)
       |> expect(:request, fn opts ->
-        # The ClinicalTrials API should receive the user's specific condition, not the LLM's
         params = opts[:params]
         assert params["query.cond"] == "lung cancer"
 
@@ -288,6 +267,10 @@ defmodule CheironTakeHome.OrchestratorTest do
              "studies" => [
                %{
                  "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT001",
+                     "briefTitle" => "Trial A"
+                   },
                    "designModule" => %{"phases" => ["PHASE2"]},
                    "statusModule" => %{"overallStatus" => "COMPLETED"}
                  }
