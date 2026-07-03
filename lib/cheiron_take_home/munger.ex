@@ -11,10 +11,13 @@ defmodule CheironTakeHome.Munger do
   def build(studies, %{viz_type: :bar_chart, group_by: group_by} = intent) do
     data =
       studies
-      |> Enum.flat_map(&extract_group_values(&1, group_by))
-      |> Enum.frequencies()
-      |> Enum.map(fn {label, count} ->
-        %{group_by => label, "trial_count" => count}
+      |> Enum.flat_map(fn study ->
+        citation = citation_for(study)
+        extract_group_values(study, group_by) |> Enum.map(&{&1, citation})
+      end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.map(fn {label, citations} ->
+        %{group_by => label, "trial_count" => length(citations), "citations" => citations}
       end)
       |> Enum.sort_by(& &1["trial_count"], :desc)
 
@@ -44,14 +47,14 @@ defmodule CheironTakeHome.Munger do
     data =
       studies
       |> Enum.map(fn s ->
-        get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])
+        {get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]), s}
       end)
-      |> Enum.reject(&(is_nil(&1) or &1 == ""))
+      |> Enum.reject(fn {date, _s} -> is_nil(date) or date == "" end)
       |> filter_by_year_range(intent)
-      |> Enum.map(&extract_period(&1, granularity))
-      |> Enum.frequencies()
-      |> Enum.map(fn {period, count} ->
-        %{"period" => period, "count" => count}
+      |> Enum.map(fn {date, study} -> {extract_period(date, granularity), citation_for(study)} end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.map(fn {period, citations} ->
+        %{"period" => period, "count" => length(citations), "citations" => citations}
       end)
       |> Enum.sort_by(& &1["period"])
 
@@ -76,10 +79,13 @@ defmodule CheironTakeHome.Munger do
   def build(studies, %{viz_type: :network_graph, edge_type: edge_type} = intent) do
     data =
       studies
-      |> Enum.flat_map(&extract_edges(&1, edge_type))
-      |> Enum.frequencies()
-      |> Enum.map(fn {{source, target}, weight} ->
-        %{"source" => source, "target" => target, "weight" => weight}
+      |> Enum.flat_map(fn study ->
+        citation = citation_for(study)
+        extract_edges(study, edge_type) |> Enum.map(fn {s, t} -> {{s, t}, citation} end)
+      end)
+      |> Enum.group_by(&elem(&1, 0), &elem(&1, 1))
+      |> Enum.map(fn {{source, target}, citations} ->
+        %{"source" => source, "target" => target, "weight" => length(citations), "citations" => citations}
       end)
       |> Enum.sort_by(& &1["weight"], :desc)
 
@@ -124,6 +130,13 @@ defmodule CheironTakeHome.Munger do
     if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
   end
 
+  defp citation_for(study) do
+    %{
+      "nct_id" => get_in(study, ["protocolSection", "identificationModule", "nctId"]),
+      "excerpt" => get_in(study, ["protocolSection", "identificationModule", "briefTitle"])
+    }
+  end
+
   defp build_title(nil, suffix), do: "Clinical Trials #{suffix}"
 
   defp build_title(subject, suffix) do
@@ -142,25 +155,25 @@ defmodule CheironTakeHome.Munger do
     end
   end
 
-  defp filter_by_year_range(date_strings, intent) do
-    date_strings
+  defp filter_by_year_range(pairs, intent) do
+    pairs
     |> maybe_filter_start(intent[:start_year])
     |> maybe_filter_end(intent[:end_year])
   end
 
-  defp maybe_filter_start(dates, nil), do: dates
+  defp maybe_filter_start(pairs, nil), do: pairs
 
-  defp maybe_filter_start(dates, start_year) do
-    Enum.filter(dates, fn date_str ->
+  defp maybe_filter_start(pairs, start_year) do
+    Enum.filter(pairs, fn {date_str, _study} ->
       {year, _} = Integer.parse(String.slice(date_str, 0, 4))
       year >= start_year
     end)
   end
 
-  defp maybe_filter_end(dates, nil), do: dates
+  defp maybe_filter_end(pairs, nil), do: pairs
 
-  defp maybe_filter_end(dates, end_year) do
-    Enum.filter(dates, fn date_str ->
+  defp maybe_filter_end(pairs, end_year) do
+    Enum.filter(pairs, fn {date_str, _study} ->
       {year, _} = Integer.parse(String.slice(date_str, 0, 4))
       year <= end_year
     end)
