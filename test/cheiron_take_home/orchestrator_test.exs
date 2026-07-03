@@ -731,4 +731,135 @@ defmodule CheironTakeHome.OrchestratorTest do
       assert viz_spec.type == "scatter_plot"
     end
   end
+
+  describe "query/1 with invalid LLM outputs" do
+    test "returns error when LLM returns unknown viz_type" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, 2, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "histogram",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.Orchestrator.query("cancer trials by phase")
+    end
+
+    test "returns error when LLM returns nil viz_type" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, 2, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => nil,
+                       "query_params" => %{"query_cond" => "cancer"}
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.Orchestrator.query("cancer trials")
+    end
+
+    test "returns error when LLM returns invalid edge_type for network_graph" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "network_graph",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "edge_type" => "condition_to_investigator"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.Orchestrator.query("cancer treatment network")
+    end
+
+    test "returns error when LLM returns invalid time_granularity for time_series" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "time_series",
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "time_granularity" => "daily"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.Orchestrator.query("cancer trials over time")
+    end
+
+    test "returns error when LLM returns query_params as a list" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, 2, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" =>
+                     Jason.encode!(%{
+                       "viz_type" => "bar_chart",
+                       "query_params" => ["cancer"],
+                       "group_by" => "phase"
+                     })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.Orchestrator.query("cancer trials")
+    end
+  end
 end

@@ -132,7 +132,10 @@ defmodule CheironTakeHome.Munger do
       studies
       |> Enum.filter(fn s ->
         get_in(s, ["protocolSection", "designModule", "enrollmentInfo", "count"]) != nil and
-          get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) not in [nil, ""]
+          get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) not in [
+            nil,
+            ""
+          ]
       end)
       |> Enum.map(fn study ->
         date = get_in(study, ["protocolSection", "statusModule", "startDateStruct", "date"])
@@ -140,7 +143,8 @@ defmodule CheironTakeHome.Munger do
 
         %{
           "start_year" => year,
-          "enrollment" => get_in(study, ["protocolSection", "designModule", "enrollmentInfo", "count"]),
+          "enrollment" =>
+            get_in(study, ["protocolSection", "designModule", "enrollmentInfo", "count"]),
           "nct_id" => get_in(study, ["protocolSection", "identificationModule", "nctId"]),
           "label" => get_in(study, ["protocolSection", "identificationModule", "briefTitle"])
         }

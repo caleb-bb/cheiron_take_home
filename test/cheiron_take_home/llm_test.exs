@@ -412,6 +412,66 @@ defmodule CheironTakeHome.LLMTest do
       assert {:ok, _plan} = CheironTakeHome.LLM.interpret("test query")
     end
 
+    test "returns error when LLM content is not valid JSON" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" => "I'm sorry, I can't help with that."
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
+    end
+
+    test "returns error when choices array is empty" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 200, body: %{"choices" => []}}}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
+    end
+
+    test "returns error when content is nil" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "choices" => [
+               %{
+                 "message" => %{
+                   "content" => nil
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
+    end
+
+    test "returns error when body has no choices key" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 200, body: %{}}}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
+    end
+
     test "system prompt includes scatter_plot as a valid viz type" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn opts ->

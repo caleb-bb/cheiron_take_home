@@ -245,4 +245,24 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
       assert {:error, _reason} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
     end
   end
+
+  describe "search/1 with malformed 200 responses" do
+    test "returns error when body is a string instead of a map" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 200, body: "not a map"}}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
+    end
+
+    test "returns error when body is nil" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 200, body: nil}}
+      end)
+
+      assert {:error, _reason} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "cancer"})
+    end
+  end
 end

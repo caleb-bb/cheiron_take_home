@@ -676,3 +676,8 @@ Once the basic architecture was in place, it became much easier to add more feat
 
 Another example that was a somewhat heavier lift but still not terribly difficult once I worked out the process: adding new visualization types. The process to this was to ask Claude Code, "What changes must be made to add [visualization type], and how do we test for it?" Once the LLM reported back, I would ask it to write failing tests, review the tests, and then commit them. Then, I asked Claude Code to make the tests pass. Property tests are especially useful here because they defy overfitting; you simply cannot overfit to an invariant.
 
+
+## Polish
+Fri Jul  3 07:11:18 2026
+
+At this point, I want to polish *toward* the grading rubric. So I'm using ChatGPT Codex to grade the assignment according to the stated criteria, and then having Claude Code fix things. LLMs have a bias where they will incrementally raise the grade each time you fix what they say to fix, so I'm using fresh Codex sessions to grade after each iteration to make sure it's unbiased.

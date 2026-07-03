@@ -137,5 +137,27 @@ defmodule CheironTakeHomeWeb.QueryControllerTest do
 
       assert %{"error" => _} = json_response(conn, 400)
     end
+
+    test "does not crash when trial_phase is an integer", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/query", %{
+          "query" => "cancer trials",
+          "trial_phase" => 3
+        })
+
+      status = conn.status
+      assert status in [200, 400, 422]
+    end
+
+    test "does not crash when sponsor is a list", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/query", %{
+          "query" => "cancer trials",
+          "sponsor" => ["Pfizer", "NIH"]
+        })
+
+      status = conn.status
+      assert status in [200, 400, 422]
+    end
   end
 end

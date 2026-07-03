@@ -202,6 +202,7 @@ defmodule CheironTakeHome.MungerTest do
 
     Enum.each(viz_spec.data, fn point ->
       assert is_integer(point["start_year"]), "Scatter plot x must be an integer"
+
       assert is_integer(point["enrollment"]) and point["enrollment"] > 0,
              "Scatter plot y must be a positive integer"
     end)
@@ -981,6 +982,7 @@ defmodule CheironTakeHome.MungerTest do
         {:ok, viz_spec} = CheironTakeHome.Munger.build(studies, viz_intent)
 
         nct_ids = Enum.map(viz_spec.data, & &1["nct_id"])
+
         assert length(nct_ids) == length(Enum.uniq(nct_ids)),
                "Duplicate nct_ids in scatter plot output"
       end
@@ -1121,6 +1123,120 @@ defmodule CheironTakeHome.MungerTest do
 
       assert {:error, :empty_result} =
                CheironTakeHome.Munger.build(studies, %{viz_type: :scatter_plot})
+    end
+  end
+
+  # --- Crash-path Validation Tests ---
+
+  describe "build/2 with unknown viz_type" do
+    test "returns error for unrecognized viz_type" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "designModule" => %{"phases" => ["PHASE1"]},
+            "statusModule" => %{"overallStatus" => "COMPLETED"}
+          }
+        }
+      ]
+
+      assert {:error, _reason} =
+               CheironTakeHome.Munger.build(studies, %{viz_type: :unknown})
+    end
+  end
+
+  describe "build/2 time_series with malformed dates" do
+    test "does not crash on non-ISO date like 'March 2024'" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "statusModule" => %{
+              "overallStatus" => "COMPLETED",
+              "startDateStruct" => %{"date" => "March 2024"}
+            }
+          }
+        }
+      ]
+
+      result =
+        CheironTakeHome.Munger.build(studies, %{
+          viz_type: :time_series,
+          time_granularity: :quarter
+        })
+
+      assert match?({:ok, _}, result) or match?({:error, _}, result)
+    end
+
+    test "does not crash on date 'N/A' in scatter_plot" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "designModule" => %{
+              "phases" => ["PHASE1"],
+              "enrollmentInfo" => %{"count" => 100}
+            },
+            "statusModule" => %{
+              "overallStatus" => "COMPLETED",
+              "startDateStruct" => %{"date" => "N/A"}
+            }
+          }
+        }
+      ]
+
+      result = CheironTakeHome.Munger.build(studies, %{viz_type: :scatter_plot})
+      assert match?({:ok, _}, result) or match?({:error, _}, result)
+    end
+  end
+
+  describe "build/2 scatter_plot with unknown color_by" do
+    test "does not crash with color_by 'sponsor'" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "designModule" => %{
+              "phases" => ["PHASE1"],
+              "enrollmentInfo" => %{"count" => 100}
+            },
+            "statusModule" => %{
+              "overallStatus" => "COMPLETED",
+              "startDateStruct" => %{"date" => "2024-01-15"}
+            },
+            "sponsorCollaboratorsModule" => %{
+              "leadSponsor" => %{"name" => "NIH"}
+            }
+          }
+        }
+      ]
+
+      result =
+        CheironTakeHome.Munger.build(studies, %{viz_type: :scatter_plot, color_by: "sponsor"})
+
+      assert match?({:ok, _}, result) or match?({:error, _}, result)
+    end
+  end
+
+  describe "build/2 network_graph with unknown edge_type" do
+    test "returns error for unrecognized edge_type" do
+      studies = [
+        %{
+          "protocolSection" => %{
+            "identificationModule" => %{"nctId" => "NCT001", "briefTitle" => "Test"},
+            "conditionsModule" => %{"conditions" => ["Cancer"]},
+            "armsInterventionsModule" => %{
+              "interventions" => [%{"name" => "Drug A", "type" => "DRUG"}]
+            }
+          }
+        }
+      ]
+
+      assert {:error, _reason} =
+               CheironTakeHome.Munger.build(studies, %{
+                 viz_type: :network_graph,
+                 edge_type: :unknown
+               })
     end
   end
 end
