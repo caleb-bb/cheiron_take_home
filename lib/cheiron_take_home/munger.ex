@@ -135,11 +135,13 @@ defmodule CheironTakeHome.Munger do
           get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) not in [
             nil,
             ""
-          ]
+          ] and
+          parse_year(get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])) !=
+            nil
       end)
       |> Enum.map(fn study ->
         date = get_in(study, ["protocolSection", "statusModule", "startDateStruct", "date"])
-        {year, _} = Integer.parse(String.slice(date, 0, 4))
+        year = parse_year(date)
 
         %{
           "start_year" => year,
@@ -174,6 +176,8 @@ defmodule CheironTakeHome.Munger do
     end
   end
 
+  def build(_studies, %{viz_type: type}), do: {:error, {:unsupported_viz_type, type}}
+
   defp maybe_add_color(point, _study, nil), do: point
 
   defp maybe_add_color(point, study, "phase") do
@@ -185,6 +189,8 @@ defmodule CheironTakeHome.Munger do
     Map.put(point, "status", get_in(study, ["protocolSection", "statusModule", "overallStatus"]))
   end
 
+  defp maybe_add_color(point, _study, _unknown), do: point
+
   defp maybe_add_color_encoding(encoding, nil), do: encoding
 
   defp maybe_add_color_encoding(encoding, color_by) do
@@ -194,6 +200,7 @@ defmodule CheironTakeHome.Munger do
 
   defp edge_labels(:condition_to_intervention), do: {"Condition", "Intervention"}
   defp edge_labels(:condition_to_sponsor), do: {"Condition", "Sponsor"}
+  defp edge_labels(_), do: {"Source", "Target"}
 
   defp extract_edges(study, :condition_to_intervention) do
     conditions = get_in(study, ["protocolSection", "conditionsModule", "conditions"]) || []
@@ -214,6 +221,8 @@ defmodule CheironTakeHome.Munger do
 
     if sponsor, do: Enum.map(conditions, &{&1, sponsor}), else: []
   end
+
+  defp extract_edges(_study, _unknown), do: []
 
   defp citation_for(study) do
     %{
@@ -250,8 +259,10 @@ defmodule CheironTakeHome.Munger do
 
   defp maybe_filter_start(pairs, start_year) do
     Enum.filter(pairs, fn {date_str, _study} ->
-      {year, _} = Integer.parse(String.slice(date_str, 0, 4))
-      year >= start_year
+      case parse_year(date_str) do
+        nil -> false
+        year -> year >= start_year
+      end
     end)
   end
 
@@ -259,8 +270,10 @@ defmodule CheironTakeHome.Munger do
 
   defp maybe_filter_end(pairs, end_year) do
     Enum.filter(pairs, fn {date_str, _study} ->
-      {year, _} = Integer.parse(String.slice(date_str, 0, 4))
-      year <= end_year
+      case parse_year(date_str) do
+        nil -> false
+        year -> year <= end_year
+      end
     end)
   end
 
@@ -269,8 +282,23 @@ defmodule CheironTakeHome.Munger do
 
   defp extract_period(date_str, :quarter) do
     year = String.slice(date_str, 0, 4)
-    month = date_str |> String.slice(5, 2) |> String.to_integer()
-    quarter = div(month - 1, 3) + 1
-    "#{year}-Q#{quarter}"
+
+    case date_str |> String.slice(5, 2) |> Integer.parse() do
+      {month, _} ->
+        quarter = div(month - 1, 3) + 1
+        "#{year}-Q#{quarter}"
+
+      :error ->
+        "#{year}-Q1"
+    end
   end
+
+  defp parse_year(date_str) when is_binary(date_str) do
+    case Integer.parse(String.slice(date_str, 0, 4)) do
+      {year, _} -> year
+      :error -> nil
+    end
+  end
+
+  defp parse_year(_), do: nil
 end

@@ -33,11 +33,24 @@ defmodule CheironTakeHomeWeb.QueryController do
     |> json(%{error: "Missing or empty \"query\" field"})
   end
 
+  @string_fields ~w(condition drug_name trial_phase sponsor)
+
   defp validate_structured_fields(fields) do
     with :ok <- validate_year_field(fields, "start_year"),
-         :ok <- validate_year_field(fields, "end_year") do
+         :ok <- validate_year_field(fields, "end_year"),
+         :ok <- validate_string_fields(fields) do
       :ok
     end
+  end
+
+  defp validate_string_fields(fields) do
+    Enum.reduce_while(@string_fields, :ok, fn key, :ok ->
+      case fields[key] do
+        nil -> {:cont, :ok}
+        val when is_binary(val) -> {:cont, :ok}
+        _ -> {:halt, {:error, "Invalid #{key}: must be a string"}}
+      end
+    end)
   end
 
   defp validate_year_field(fields, key) do

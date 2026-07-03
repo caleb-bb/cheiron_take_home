@@ -53,8 +53,11 @@ defmodule CheironTakeHome.ClinicalTrials do
   defp maybe_put(map, _key, nil), do: map
   defp maybe_put(map, key, value), do: Map.put(map, key, value)
 
-  defp handle_response({:ok, %{status: 200, body: body}}),
+  defp handle_response({:ok, %{status: 200, body: body}}) when is_map(body),
     do: {:ok, body["studies"] || [], body["nextPageToken"]}
+
+  defp handle_response({:ok, %{status: 200, body: body}}),
+    do: {:error, %{reason: "API returned 200 but body is not a map: #{inspect(body)}"}}
 
   defp handle_response({:ok, %{status: status, body: body}}),
     do: {:error, %{reason: "API returned #{status}: #{inspect(body)}"}}

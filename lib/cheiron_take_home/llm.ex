@@ -56,23 +56,31 @@ defmodule CheironTakeHome.LLM do
   end
 
   defp handle_response({:ok, %{status: 200, body: body}}) do
-    content =
-      get_in(body, ["choices", Access.at(0), "message", "content"])
-      |> String.replace(~r/^```json\n?/, "")
-      |> String.replace(~r/\n?```$/, "")
-      |> String.trim()
+    content = get_in(body, ["choices", Access.at(0), "message", "content"])
 
-    plan = Jason.decode!(content)
+    with content when is_binary(content) <- content,
+         trimmed =
+           content
+           |> String.replace(~r/^```json\n?/, "")
+           |> String.replace(~r/\n?```$/, "")
+           |> String.trim(),
+         {:ok, plan} <- Jason.decode(trimmed) do
+      {:ok,
+       %{
+         viz_type: plan["viz_type"],
+         query_params: plan["query_params"],
+         group_by: plan["group_by"],
+         time_granularity: plan["time_granularity"],
+         edge_type: plan["edge_type"],
+         color_by: plan["color_by"]
+       }}
+    else
+      nil ->
+        {:error, %{reason: "LLM returned no content"}}
 
-    {:ok,
-     %{
-       viz_type: plan["viz_type"],
-       query_params: plan["query_params"],
-       group_by: plan["group_by"],
-       time_granularity: plan["time_granularity"],
-       edge_type: plan["edge_type"],
-       color_by: plan["color_by"]
-     }}
+      {:error, %Jason.DecodeError{} = err} ->
+        {:error, %{reason: "LLM returned invalid JSON: #{Exception.message(err)}"}}
+    end
   end
 
   defp handle_response({:ok, %{status: status, body: body}}),

@@ -681,3 +681,11 @@ Another example that was a somewhat heavier lift but still not terribly difficul
 Fri Jul  3 07:11:18 2026
 
 At this point, I want to polish *toward* the grading rubric. So I'm using ChatGPT Codex to grade the assignment according to the stated criteria, and then having Claude Code fix things. LLMs have a bias where they will incrementally raise the grade each time you fix what they say to fix, so I'm using fresh Codex sessions to grade after each iteration to make sure it's unbiased.
+
+The process goes:
+
+1. Create a new ChatGPT Codex session and have it grade the repo based on the criteria in `assignment.md`
+2. Use Claude Code to TDD changes to meet ChatGPT Codex's criticisms
+3. Delete the old ChaGPT Codex session and have it grade again
+
+I'm finding that, despite using a new Codex session each time, the grade is slowly creeping upward.

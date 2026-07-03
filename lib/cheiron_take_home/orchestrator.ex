@@ -15,7 +15,7 @@ defmodule CheironTakeHome.Orchestrator do
   def query(query_string, structured_fields)
       when is_binary(query_string) and query_string != "" and is_map(structured_fields) do
     with {:ok, query_plan} <- CheironTakeHome.LLM.interpret(query_string),
-         {api_params, viz_intent} = build_intent(query_plan, structured_fields),
+         {:ok, api_params, viz_intent} <- build_intent(query_plan, structured_fields),
          :ok <- validate_search_params(api_params),
          {:ok, studies} <- CheironTakeHome.ClinicalTrials.search(api_params),
          {:ok, viz_spec} <- CheironTakeHome.Munger.build(studies, viz_intent) do
@@ -27,20 +27,20 @@ defmodule CheironTakeHome.Orchestrator do
   end
 
   defp build_intent(query_plan, structured_fields) do
-    {base_api_params, base_viz_intent} = split_query_plan(query_plan)
+    with {:ok, base_api_params, base_viz_intent} <- split_query_plan(query_plan) do
+      merged_api_params =
+        base_api_params
+        |> merge_structured_fields(structured_fields)
 
-    merged_api_params =
-      base_api_params
-      |> merge_structured_fields(structured_fields)
+      final_viz_intent =
+        base_viz_intent
+        |> update_subject(merged_api_params)
+        |> merge_year_filters(structured_fields)
 
-    final_viz_intent =
-      base_viz_intent
-      |> update_subject(merged_api_params)
-      |> merge_year_filters(structured_fields)
+      final_api_params = ensure_page_size(merged_api_params, final_viz_intent)
 
-    final_api_params = ensure_page_size(merged_api_params, final_viz_intent)
-
-    {final_api_params, final_viz_intent}
+      {:ok, final_api_params, final_viz_intent}
+    end
   end
 
   @param_keys %{
@@ -63,18 +63,25 @@ defmodule CheironTakeHome.Orchestrator do
 
     subject = api_params[:query_cond] || api_params[:query_intr] || api_params[:query_term]
 
-    viz_type = to_viz_type(query_plan.viz_type)
+    granularity = to_granularity(query_plan.time_granularity)
+    edge_type = to_edge_type(query_plan[:edge_type])
 
-    viz_intent =
-      %{viz_type: viz_type}
-      |> maybe_put(:group_by, query_plan.group_by)
-      |> maybe_put(:time_granularity, to_granularity(query_plan.time_granularity))
-      |> maybe_put(:edge_type, to_edge_type(query_plan[:edge_type]))
-      |> maybe_put(:color_by, query_plan[:color_by])
-      |> maybe_put(:subject, subject)
-      |> ensure_defaults(viz_type)
+    with {:gran, val} when not is_tuple(val) or elem(val, 0) != :error <- {:gran, granularity},
+         {:edge, val} when not is_tuple(val) or elem(val, 0) != :error <- {:edge, edge_type} do
+      viz_intent =
+        %{viz_type: to_viz_type(query_plan.viz_type)}
+        |> maybe_put(:group_by, query_plan.group_by)
+        |> maybe_put(:time_granularity, granularity)
+        |> maybe_put(:edge_type, edge_type)
+        |> maybe_put(:color_by, query_plan[:color_by])
+        |> maybe_put(:subject, subject)
+        |> ensure_defaults(to_viz_type(query_plan.viz_type))
 
-    {api_params, viz_intent}
+      {:ok, api_params, viz_intent}
+    else
+      {:gran, {:error, reason}} -> {:error, reason}
+      {:edge, {:error, reason}} -> {:error, reason}
+    end
   end
 
   defp ensure_defaults(viz_intent, :time_series) do
@@ -95,12 +102,14 @@ defmodule CheironTakeHome.Orchestrator do
   defp to_edge_type("condition_to_intervention"), do: :condition_to_intervention
   defp to_edge_type("condition_to_sponsor"), do: :condition_to_sponsor
   defp to_edge_type(nil), do: nil
+  defp to_edge_type(other), do: {:error, {:invalid_edge_type, other}}
 
   defp to_granularity("yearly"), do: :year
   defp to_granularity("year"), do: :year
   defp to_granularity("month"), do: :month
   defp to_granularity("quarter"), do: :quarter
   defp to_granularity(nil), do: nil
+  defp to_granularity(other), do: {:error, {:invalid_granularity, other}}
 
   defp ensure_page_size(api_params, %{viz_type: :time_series}) do
     Map.put_new(api_params, :page_size, @default_time_series_page_size)
