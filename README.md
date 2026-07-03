@@ -1,3 +1,162 @@
+# Queries and outputs
+
+## Lung cancer trials by phase
+
+```elixir
+CheironTakeHome.Orchestrator.query("How many lung cancer trials are in each phase?")
+```
+
+```json
+{
+  "data": [
+    {"phase": "NA", "trial_count": 4},
+    {"phase": "PHASE2", "trial_count": 3},
+    {"phase": "PHASE3", "trial_count": 1}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
+  "type": "bar_chart",
+  "sort": {"field": "phase", "order": "descending"},
+  "encoding": {
+    "x": {"label": "Phase", "type": "categorical", "field": "phase"},
+    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
+  },
+  "title": "Lung Cancer Clinical Trials by Phase"
+}
+```
+
+## Alzheimer's disease trials by recruitment status
+
+```elixir
+CheironTakeHome.Orchestrator.query("What's the recruitment status of Alzheimer's disease trials?")
+```
+
+```json
+{
+  "data": [
+    {"status": "COMPLETED", "trial_count": 7},
+    {"status": "RECRUITING", "trial_count": 3}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
+  "type": "bar_chart",
+  "sort": {"field": "status", "order": "descending"},
+  "encoding": {
+    "x": {"label": "Status", "type": "categorical", "field": "status"},
+    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
+  },
+  "title": "Alzheimer's Disease Clinical Trials by Status"
+}
+```
+
+## Breast cancer trial activity over time
+
+```elixir
+CheironTakeHome.Orchestrator.query("How has clinical trial activity for breast cancer changed over time?")
+```
+
+```json
+{
+  "data": [
+    {"count": 1, "period": "1987"},
+    {"count": 1, "period": "1994"},
+    {"count": 1, "period": "1996"},
+    {"count": 2, "period": "1997"},
+    {"count": 2, "period": "1999"},
+    {"count": 2, "period": "2000"},
+    {"count": 1, "period": "2001"},
+    {"count": 2, "period": "2002"},
+    {"count": 1, "period": "2003"},
+    {"count": 1, "period": "2004"},
+    {"count": 4, "period": "2005"},
+    {"count": 2, "period": "2006"},
+    {"count": 3, "period": "2009"},
+    {"count": 2, "period": "2010"},
+    {"count": 3, "period": "2011"},
+    {"count": 4, "period": "2012"},
+    {"count": 4, "period": "2013"},
+    {"count": 2, "period": "2014"},
+    {"count": 6, "period": "2015"},
+    {"count": 10, "period": "2016"},
+    {"count": 6, "period": "2017"},
+    {"count": 4, "period": "2018"},
+    {"count": 4, "period": "2019"},
+    {"count": 4, "period": "2020"},
+    {"count": 5, "period": "2021"},
+    {"count": 3, "period": "2022"},
+    {"count": 4, "period": "2023"},
+    {"count": 6, "period": "2024"},
+    {"count": 7, "period": "2025"},
+    {"count": 2, "period": "2026"}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "date_field": "startDateStruct", "total_studies": 100},
+  "type": "time_series",
+  "encoding": {
+    "x": {"label": "Year", "type": "temporal", "field": "period", "granularity": "year"},
+    "y": {"label": "Number of Trials Started", "type": "quantitative", "field": "count"}
+  },
+  "title": "Breast Cancer Clinical Trials Over Time"
+}
+```
+
+## Immunotherapy trials by phase
+
+```elixir
+CheironTakeHome.Orchestrator.query("What phases are immunotherapy trials in?")
+```
+
+```json
+{
+  "data": [
+    {"phase": "PHASE2", "trial_count": 7},
+    {"phase": "NA", "trial_count": 2},
+    {"phase": "PHASE1", "trial_count": 1},
+    {"phase": "PHASE3", "trial_count": 1}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
+  "type": "bar_chart",
+  "sort": {"field": "phase", "order": "descending"},
+  "encoding": {
+    "x": {"label": "Phase", "type": "categorical", "field": "phase"},
+    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
+  },
+  "title": "Immunotherapy Clinical Trials by Phase"
+}
+```
+
+## CRISPR clinical trials over time
+
+```elixir
+CheironTakeHome.Orchestrator.query("When did CRISPR clinical trials start ramping up?")
+```
+
+```json
+{
+  "data": [
+    {"count": 3, "period": "2016"},
+    {"count": 2, "period": "2017"},
+    {"count": 8, "period": "2018"},
+    {"count": 5, "period": "2019"},
+    {"count": 6, "period": "2020"},
+    {"count": 11, "period": "2021"},
+    {"count": 11, "period": "2022"},
+    {"count": 13, "period": "2023"},
+    {"count": 14, "period": "2024"},
+    {"count": 16, "period": "2025"},
+    {"count": 8, "period": "2026"},
+    {"count": 2, "period": "2027"},
+    {"count": 1, "period": "2028"}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "date_field": "startDateStruct", "total_studies": 100},
+  "type": "time_series",
+  "encoding": {
+    "x": {"label": "Year", "type": "temporal", "field": "period", "granularity": "year"},
+    "y": {"label": "Number of Trials Started", "type": "quantitative", "field": "count"}
+  },
+  "title": "Crispr Clinical Trials Over Time"
+}
+```
+
+
+
 # Development Log
 
 (This was all typed by hand with the exception of the response fields, which were copy-pasted from a Claude Code response. I did, however, *tak to* Claude Code a lot while writing this.)
@@ -209,3 +368,21 @@ Claude Code surfaced two things:
 2. The LLM's system prompt doesn't tell it which viz_type values are valid, so it can return anything.
 
 This is a series of prompts that I used to fill in the last few nooks and crannies to reach MVP.
+
+-------------------------------------------------------------------------------
+
+I noticed an error where empty lists were being quietly returned. After prompting a bit and running diagnostics, Claude Code applied these fixes:
+
+```
+1. Empty data returns an error — Both bar_chart and time_series branches in Munger.build/2 now
+check if data == [] and return {:error, :empty_result}.
+2. Unsupported group_by is rejected early — A new function head in Munger.build/2 validates
+group_by against @supported_group_by and returns {:error, {:unsupported_group_by, ...}} for
+unknown values. The silent catch-all extract_group_values(_, _) is removed.
+3. LLM prompt constrained — The system prompt now tells the LLM that group_by must be "phase" or
+"status", defaulting to "phase" when the question doesn't clearly map.
+4. Added "status" grouping support — New extract_group_values/2 clause for "status" so the Munger
+can group by recruitment status.
+5. Controller error formatting — Added format_error clauses for the two new error types.
+```
+
