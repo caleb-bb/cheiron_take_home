@@ -281,6 +281,57 @@ defmodule CheironTakeHome.LLMTest do
       assert {:error, _reason} = CheironTakeHome.LLM.interpret("cancer trials")
     end
 
+    test "retry includes corrective prompt describing the validation error" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "text_summary",
+                    "query_params" => %{"query_cond" => "cancer"}
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+      |> expect(:request, fn opts ->
+        body = Jason.decode!(opts[:body])
+        messages = body["messages"]
+        last_message = List.last(messages)
+
+        assert length(messages) >= 3, "Retry should include more than just system + user messages"
+        assert last_message["role"] == "user"
+        assert last_message["content"] =~ "viz_type"
+        assert last_message["content"] =~ "text_summary"
+
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "bar_chart",
+                    "query_params" => %{"query_cond" => "cancer"},
+                    "group_by" => "phase"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      assert {:ok, query_plan} = CheironTakeHome.LLM.interpret("cancer trials by phase")
+      assert query_plan.viz_type == "bar_chart"
+    end
+
     test "does not retry on HTTP errors" do
       CheironTakeHome.MockHttpClient
       |> expect(:request, fn _opts ->
