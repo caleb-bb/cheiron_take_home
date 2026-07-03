@@ -7,6 +7,8 @@ defmodule CheironTakeHomeWeb.Router do
 
   scope "/api", CheironTakeHomeWeb do
     pipe_through :api
+
+    post "/query", QueryController, :create
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
