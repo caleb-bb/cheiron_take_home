@@ -1,28 +1,28 @@
 defmodule CheironTakeHome.Munger do
   @moduledoc "Transforms raw ClinicalTrials.gov data plus visualization intent into a structured visualization spec."
 
-  def build(studies, %{viz_type: :bar_chart, group_by: "phase"}) do
+  def build(studies, %{viz_type: :bar_chart, group_by: group_by}) do
     data =
       studies
-      |> Enum.flat_map(fn s ->
-        get_in(s, ["protocolSection", "designModule", "phases"]) || []
-      end)
+      |> Enum.flat_map(&extract_group_values(&1, group_by))
       |> Enum.frequencies()
-      |> Enum.map(fn {phase, count} ->
-        %{"phase" => phase, "trial_count" => count}
+      |> Enum.map(fn {label, count} ->
+        %{group_by => label, "trial_count" => count}
       end)
       |> Enum.sort_by(& &1["trial_count"], :desc)
 
+    label = group_by |> String.replace("_", " ") |> String.capitalize()
+
     {:ok, %{
       type: "bar_chart",
-      title: "Clinical Trials by Phase",
+      title: "Clinical Trials by #{label}",
       encoding: %{
-        x: %{field: "phase", label: "Trial Phase", type: "categorical"},
+        x: %{field: group_by, label: label, type: "categorical"},
         y: %{field: "trial_count", label: "Number of Trials", type: "quantitative"}
       },
       data: data,
       meta: %{source: "clinicaltrials.gov", total_studies: length(studies)},
-      sort: %{field: "phase", order: "ordinal", sequence: ["EARLY_PHASE1", "PHASE1", "PHASE2", "PHASE3", "PHASE4", "NA"]}
+      sort: %{field: group_by, order: "descending"}
     }}
   end
 
@@ -53,6 +53,12 @@ defmodule CheironTakeHome.Munger do
       meta: %{source: "clinicaltrials.gov", total_studies: length(studies), date_field: "startDateStruct"}
     }}
   end
+
+  defp extract_group_values(study, "phase") do
+    get_in(study, ["protocolSection", "designModule", "phases"]) || []
+  end
+
+  defp extract_group_values(_, _), do: []
 
   defp extract_period(date_str, :year), do: String.slice(date_str, 0, 4)
   defp extract_period(date_str, :month), do: String.slice(date_str, 0, 7)

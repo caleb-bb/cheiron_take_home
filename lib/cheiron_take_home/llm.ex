@@ -46,7 +46,13 @@ defmodule CheironTakeHome.LLM do
   defp api_key, do: System.get_env("OPENAI_API_KEY")
 
   defp system_prompt do
-    "You interpret natural language questions about clinical trials into structured query plans. " <>
-      "Return JSON with: viz_type, query_params, group_by (optional), time_granularity (optional)."
+    """
+    You interpret natural language questions about clinical trials into structured query plans.
+    Return JSON with: viz_type, query_params, group_by (optional), time_granularity (optional).
+
+    viz_type MUST be exactly one of these two values: "bar_chart" or "time_series". No other values are allowed.
+    Choose "bar_chart" for comparisons, distributions, or categorical breakdowns.
+    Choose "time_series" for trends over time or temporal patterns.
+    """
   end
 end

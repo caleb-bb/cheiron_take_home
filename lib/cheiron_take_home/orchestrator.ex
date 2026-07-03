@@ -7,6 +7,9 @@ defmodule CheironTakeHome.Orchestrator do
          {:ok, studies} <- CheironTakeHome.ClinicalTrials.search(api_params),
          {:ok, viz_spec} <- CheironTakeHome.Munger.build(studies, viz_intent) do
       {:ok, viz_spec}
+    else
+      {:error, reason} -> {:error, reason}
+      other -> {:error, {:unexpected, other}}
     end
   end
 
