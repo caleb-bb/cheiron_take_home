@@ -70,6 +70,7 @@ defmodule CheironTakeHome.Orchestrator do
       |> maybe_put(:group_by, query_plan.group_by)
       |> maybe_put(:time_granularity, to_granularity(query_plan.time_granularity))
       |> maybe_put(:edge_type, to_edge_type(query_plan[:edge_type]))
+      |> maybe_put(:color_by, query_plan[:color_by])
       |> maybe_put(:subject, subject)
       |> ensure_defaults(viz_type)
 
@@ -89,6 +90,7 @@ defmodule CheironTakeHome.Orchestrator do
   defp to_viz_type("bar_chart"), do: :bar_chart
   defp to_viz_type("time_series"), do: :time_series
   defp to_viz_type("network_graph"), do: :network_graph
+  defp to_viz_type("scatter_plot"), do: :scatter_plot
 
   defp to_edge_type("condition_to_intervention"), do: :condition_to_intervention
   defp to_edge_type("condition_to_sponsor"), do: :condition_to_sponsor
@@ -105,6 +107,10 @@ defmodule CheironTakeHome.Orchestrator do
   end
 
   defp ensure_page_size(api_params, %{viz_type: :network_graph}) do
+    Map.put_new(api_params, :page_size, @default_time_series_page_size)
+  end
+
+  defp ensure_page_size(api_params, %{viz_type: :scatter_plot}) do
     Map.put_new(api_params, :page_size, @default_time_series_page_size)
   end
 

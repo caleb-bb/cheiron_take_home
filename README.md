@@ -590,3 +590,9 @@ can group by recruitment status.
 5. Controller error formatting — Added format_error clauses for the two new error types.
 ```
 
+-------------------------------------------------------------------------------
+
+Once the basic architecture was in place, it became much easier to add more features. Deep citations were not difficult because the property tests laid down at the beginning to ensure traceability enforced connection from output to actual  data points from the clinicaltrials.gov API. The munger was just aggregating away the source studies, so the change was trivial.
+
+Another example that was a somewhat heavier lift but still not terribly difficult once I worked out the process: adding new visualization types. The process to this was to ask Claude Code, "What changes must be made to add [visualization type], and how do we test for it?" Once the LLM reported back, I would ask it to write failing tests, review the tests, and then commit them. Then, I asked Claude Code to make the tests pass. Property tests are especially useful here because they defy overfitting; you simply cannot overfit to an invariant.
+

@@ -678,7 +678,7 @@ defmodule CheironTakeHome.OrchestratorTest do
   describe "query/2 with scatter_plot" do
     test "scatter_plot viz_type flows through the pipeline" do
       CheironTakeHome.MockHttpClient
-      |> expect(:request, 2, fn _opts ->
+      |> expect(:request, fn _opts ->
         {:ok,
          %{
            status: 200,
@@ -689,8 +689,35 @@ defmodule CheironTakeHome.OrchestratorTest do
                    "content" =>
                      Jason.encode!(%{
                        "viz_type" => "scatter_plot",
-                       "query_params" => %{"query_cond" => "cancer"}
+                       "query_params" => %{"query_cond" => "cancer"},
+                       "color_by" => "phase"
                      })
+                 }
+               }
+             ]
+           }
+         }}
+      end)
+      |> expect(:request, fn _opts ->
+        {:ok,
+         %{
+           status: 200,
+           body: %{
+             "studies" => [
+               %{
+                 "protocolSection" => %{
+                   "identificationModule" => %{
+                     "nctId" => "NCT001",
+                     "briefTitle" => "Test Trial"
+                   },
+                   "designModule" => %{
+                     "phases" => ["PHASE3"],
+                     "enrollmentInfo" => %{"count" => 200, "type" => "ACTUAL"}
+                   },
+                   "statusModule" => %{
+                     "overallStatus" => "COMPLETED",
+                     "startDateStruct" => %{"date" => "2024-01-15"}
+                   }
                  }
                }
              ]

@@ -3,7 +3,7 @@ defmodule CheironTakeHome.LLM do
 
   @url "https://api.openai.com/v1/chat/completions"
 
-  @valid_viz_types ~w(bar_chart time_series network_graph)
+  @valid_viz_types ~w(bar_chart time_series network_graph scatter_plot)
   @max_retries 1
 
   def interpret(query) do
@@ -70,7 +70,8 @@ defmodule CheironTakeHome.LLM do
        query_params: plan["query_params"],
        group_by: plan["group_by"],
        time_granularity: plan["time_granularity"],
-       edge_type: plan["edge_type"]
+       edge_type: plan["edge_type"],
+       color_by: plan["color_by"]
      }}
   end
 
@@ -97,10 +98,11 @@ defmodule CheironTakeHome.LLM do
     You interpret natural language questions about clinical trials into structured query plans.
     Return JSON with: viz_type, query_params, group_by (optional), time_granularity (optional).
 
-    viz_type MUST be exactly one of: "bar_chart", "time_series", or "network_graph". No other values are allowed.
+    viz_type MUST be exactly one of: "bar_chart", "time_series", "network_graph", or "scatter_plot". No other values are allowed.
     Choose "bar_chart" for comparisons, distributions, or categorical breakdowns.
     Choose "time_series" for trends over time or temporal patterns.
     Choose "network_graph" for questions about relationships between entities — e.g., which drugs treat which conditions, which sponsors fund which diseases, or what interventions are used for a condition.
+    Choose "scatter_plot" for questions about individual trial sizes, enrollment patterns, or when the user wants to see individual data points rather than aggregates.
 
     query_params is an object whose keys MUST come from this list only:
     - "query_cond": condition or disease (e.g., "lung cancer", "diabetes"). Use this for disease/condition searches.
@@ -119,6 +121,10 @@ defmodule CheironTakeHome.LLM do
     - "condition_to_intervention" links conditions/diseases to their treatments/drugs
     - "condition_to_sponsor" links conditions/diseases to their lead sponsors
     Default to "condition_to_intervention" when the user's question does not clearly map to one of these.
+
+    When viz_type is "scatter_plot", color_by is optional and MUST be one of: "phase", "status". No other values are allowed.
+    - "phase" colors points by their clinical phase
+    - "status" colors points by their recruitment status
     """
   end
 end

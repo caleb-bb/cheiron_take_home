@@ -127,6 +127,67 @@ defmodule CheironTakeHome.Munger do
     end
   end
 
+  def build(studies, %{viz_type: :scatter_plot} = intent) do
+    data =
+      studies
+      |> Enum.filter(fn s ->
+        get_in(s, ["protocolSection", "designModule", "enrollmentInfo", "count"]) != nil and
+          get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"]) not in [nil, ""]
+      end)
+      |> Enum.map(fn study ->
+        date = get_in(study, ["protocolSection", "statusModule", "startDateStruct", "date"])
+        {year, _} = Integer.parse(String.slice(date, 0, 4))
+
+        %{
+          "start_year" => year,
+          "enrollment" => get_in(study, ["protocolSection", "designModule", "enrollmentInfo", "count"]),
+          "nct_id" => get_in(study, ["protocolSection", "identificationModule", "nctId"]),
+          "label" => get_in(study, ["protocolSection", "identificationModule", "briefTitle"])
+        }
+        |> maybe_add_color(study, intent[:color_by])
+      end)
+
+    if data == [] do
+      {:error, :empty_result}
+    else
+      title = build_title(intent[:subject], "by Enrollment")
+
+      encoding =
+        %{
+          x: %{field: "start_year", label: "Start Year", type: "quantitative"},
+          y: %{field: "enrollment", label: "Enrollment", type: "quantitative"}
+        }
+        |> maybe_add_color_encoding(intent[:color_by])
+
+      {:ok,
+       %{
+         type: "scatter_plot",
+         title: title,
+         encoding: encoding,
+         data: data,
+         meta: %{source: "clinicaltrials.gov", total_studies: length(studies)}
+       }}
+    end
+  end
+
+  defp maybe_add_color(point, _study, nil), do: point
+
+  defp maybe_add_color(point, study, "phase") do
+    phases = get_in(study, ["protocolSection", "designModule", "phases"]) || []
+    Map.put(point, "phase", Enum.join(phases, "/"))
+  end
+
+  defp maybe_add_color(point, study, "status") do
+    Map.put(point, "status", get_in(study, ["protocolSection", "statusModule", "overallStatus"]))
+  end
+
+  defp maybe_add_color_encoding(encoding, nil), do: encoding
+
+  defp maybe_add_color_encoding(encoding, color_by) do
+    label = color_by |> String.replace("_", " ") |> String.capitalize()
+    Map.put(encoding, :color, %{field: color_by, label: label, type: "categorical"})
+  end
+
   defp edge_labels(:condition_to_intervention), do: {"Condition", "Intervention"}
   defp edge_labels(:condition_to_sponsor), do: {"Condition", "Sponsor"}
 
