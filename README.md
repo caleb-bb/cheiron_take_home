@@ -22,7 +22,6 @@ CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrol
         {"nct_id": "NCT03391973", "excerpt": "Pembrolizumab in Patients With Poor-Prognosis Carcinoma of Unknown Primary Site (CUP)"},
         {"nct_id": "NCT03436056", "excerpt": "PembRolIzuMab and Stereotactic Body Radiotherapy In Metastatic Non-small-cell lunG Cancer Patients"},
         {"nct_id": "NCT03447678", "excerpt": "Pembrolizumab in First Line Treatment of Advanced NSCLC Patients With PD-L1 Low Tumors."},
-        "... 44 more citations"
       ]
     },
     {
@@ -31,7 +30,6 @@ CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrol
       "citations": [
         {"nct_id": "NCT03776864", "excerpt": "Umbralisib and Pembrolizumab in Treating Patients With Relapsed or Refractory Classical Hodgkin Lymphoma"},
         {"nct_id": "NCT04083599", "excerpt": "GEN1042 Safety Trial and Anti-tumor Activity in Participants With Malignant Solid Tumors"},
-        "... 31 more citations"
       ]
     },
     {
@@ -40,7 +38,6 @@ CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrol
       "citations": [
         {"nct_id": "NCT04222972", "excerpt": "A Study of Pralsetinib Versus Standard of Care for First-Line Treatment of Advanced Non-Small Cell Lung Cancer (NSCLC)"},
         {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
-        "... 46 more citations"
       ]
     },
     {"period": "2021", "count": 43, "citations": ["... 43 citations"]},
@@ -74,7 +71,6 @@ CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast c
         {"nct_id": "NCT00019812", "excerpt": "Monoclonal Antibody Plus Chemotherapy in Treating Patients With Metastatic Breast Cancer That Overexpresses HER2"},
         {"nct_id": "NCT01413828", "excerpt": "Trastuzumab Administered Concurrently or Sequentially to Anthracycline-containing Adjuvant Regimen for Breast Cancer"},
         {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
-        "... 16 more citations"
       ]
     },
     {
@@ -83,7 +79,6 @@ CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast c
       "citations": [
         {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
         {"nct_id": "NCT02882581", "excerpt": "Metformin in Breast Cancer, Visualized With Positron Emission Tomography"},
-        "... 11 more citations"
       ]
     },
     {"phase": "NA", "trial_count": 12, "citations": ["... 12 citations"]},
@@ -118,7 +113,6 @@ CheironTakeHome.Orchestrator.query("recruiting status of cancer trials", %{"cond
         {"nct_id": "NCT00312819", "excerpt": "Initial Assessment of the Effect of the Addition of Disulfiram (Antabuse) to Standard Chemotherapy in Lung Cancer"},
         {"nct_id": "NCT02538666", "excerpt": "An Investigational Immuno-therapy Study of Nivolumab, or Nivolumab in Combination With Ipilimumab, or Placebo in Patients With Extensive-Stage Disease Small Cell Lung Cancer (ED-SCLC)"},
         {"nct_id": "NCT00003831", "excerpt": "Lymph Node Removal in Treating Patients With Stage I or Stage II Non-small Cell Lung Cancer"},
-        "... 21 more citations"
       ]
     },
     {"status": "UNKNOWN", "trial_count": 9, "citations": ["... 9 citations"]},
@@ -157,7 +151,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
         {"nct_id": "NCT00072527", "excerpt": "Cisplatin and Irinotecan Followed by Carboplatin, Etoposide, and Radiation Therapy in Treating Patients With Limited-Stage Small Cell Lung Cancer"},
         {"nct_id": "NCT00238251", "excerpt": "Radiation Therapy Combined With Either Gefitinib or Temozolomide in Pats With NSCLC and Brain Metastases"},
         {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
-        "... 4 more citations"
       ]
     },
     {
@@ -167,7 +160,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
       "citations": [
         {"nct_id": "NCT00072527", "excerpt": "Cisplatin and Irinotecan Followed by Carboplatin, Etoposide, and Radiation Therapy in Treating Patients With Limited-Stage Small Cell Lung Cancer"},
         {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
-        "... 4 more citations"
       ]
     },
     {
@@ -177,7 +169,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
       "citations": [
         {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
         {"nct_id": "NCT00278148", "excerpt": "Erlotinib, Paclitaxel, and Carboplatin Combined With Radiation Therapy for Stage III Non-Small Cell Lung Cancer"},
-        "... 3 more citations"
       ]
     },
     {"source": "Carcinoma, Non-Small-Cell Lung", "target": "Docetaxel", "weight": 4, "citations": ["... 4 citations"]},
@@ -219,7 +210,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat tuberculosis?")
         {"nct_id": "NCT03199313", "excerpt": "Study to Evaluate the Safety, Tolerability, and Pharmacokinetics of Sutezolid"},
         {"nct_id": "NCT04472897", "excerpt": "A Study to Evaluate Safety, Tolerability and Pharmacokinetics of GSK2556286 in Healthy Adult Participants"},
         {"nct_id": "NCT00871949", "excerpt": "Safety, Tolerability And Pharmacokinetics Study Of Single Doses Of PNU-100480 In Healthy Adults"},
-        "... 22 more citations"
       ]
     },
     {
@@ -230,7 +220,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat tuberculosis?")
         {"nct_id": "NCT03334734", "excerpt": "Phase 2a Study of PBTZ169"},
         {"nct_id": "NCT02735590", "excerpt": "The Correlate of Risk Targeted Intervention Study"},
         {"nct_id": "NCT00000636", "excerpt": "Prophylaxis Against Tuberculosis (TB) in Patients With HIV Infection and Confirmed Latent Tuberculous Infection"},
-        "... 13 more citations"
       ]
     },
     {
@@ -241,7 +230,6 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat tuberculosis?")
         {"nct_id": "NCT00000636", "excerpt": "Prophylaxis Against Tuberculosis (TB) in Patients With HIV Infection and Confirmed Latent Tuberculous Infection"},
         {"nct_id": "NCT00023374", "excerpt": "TBTC Study 24: Intermittent Treatment of TB With Isoniazid Resistance or Intolerance"},
         {"nct_id": "NCT04768231", "excerpt": "Rifampicin at High Dose for Difficult-to-Treat Tuberculosis"},
-        "... 4 more citations"
       ]
     },
     {"source": "Tuberculosis", "target": "BCG", "weight": 6, "citations": ["... 6 citations"]},
