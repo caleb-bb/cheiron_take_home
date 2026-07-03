@@ -110,3 +110,19 @@ This is just a nice frontend. We may partially build this at the beginning anywa
 1. DaisyUI or similar
 2. Pre-made components online
 3. Chatbox with rendering component at `/home`
+
+
+## Actual Changes
+#### Thu Jul  2 21:55:09 2026
+
+This is where I'm recording the actual changes I make and hand off to Claude Code, which is how I'll write most of this. I burned the first 4 hours of development time on planning, research, and architecting. If done correctly, the actual implementation will be the shorter part. I did this by talking to Claude Code about what I wanted it to do in chat, having it generate prompts, feeding those prompts into Claude Code. You can find the prompts I generated under `/claude_code_prompts`.
+
+How do I link to another file in markdown?
+To link to another file in markdown, you can use the following syntax:
+
+Replace "Link Text" with the text you want to display as the link, and "path/to/another/file" with the relative or absolute path to the file you want to link to.
+
+### Prompt 1
+[prompt text](claude_code_prompts/prompt_1.md)
+
+We're gonna need `Req` for http requests, `Mox` for mocking API calls, `stream_data` for property testing, and `nimble_options` because I created this repo with Ecto to validate things. 
