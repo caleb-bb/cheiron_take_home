@@ -577,4 +577,52 @@ defmodule CheironTakeHome.OrchestratorTest do
       assert viz_spec.type == "bar_chart"
     end
   end
+
+  describe "query/2 ignores LLM page_size" do
+    test "LLM-supplied page_size is dropped from API params" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "bar_chart",
+                    "query_params" => %{
+                      "query_cond" => "diabetes",
+                      "page_size" => 5
+                    },
+                    "group_by" => "phase"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+      |> expect(:request, fn opts ->
+        params = opts[:params]
+        refute Map.has_key?(params, "pageSize"),
+               "LLM-supplied page_size should not reach the API"
+
+        {:ok, %{
+          status: 200,
+          body: %{
+            "studies" => [
+              %{
+                "protocolSection" => %{
+                  "designModule" => %{"phases" => ["PHASE2"]},
+                  "statusModule" => %{"overallStatus" => "COMPLETED"}
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      assert {:ok, _viz_spec} = CheironTakeHome.Orchestrator.query("diabetes trials by phase")
+    end
+  end
 end

@@ -349,5 +349,35 @@ defmodule CheironTakeHome.LLMTest do
 
       assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
     end
+
+    test "system prompt does not mention page_size" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn opts ->
+        body = Jason.decode!(opts[:body])
+        system_msg = Enum.find(body["messages"], &(&1["role"] == "system"))
+
+        refute system_msg["content"] =~ "page_size",
+               "System prompt should not mention page_size — pagination is handled internally"
+
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "bar_chart",
+                    "query_params" => %{"query_cond" => "test"},
+                    "group_by" => "phase"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      assert {:ok, _plan} = CheironTakeHome.LLM.interpret("test query")
+    end
   end
 end
