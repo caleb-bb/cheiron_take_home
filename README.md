@@ -1,124 +1,135 @@
 # Queries and outputs (AI generated)
 
-## Lung cancer trials by phase
+## Pembrolizumab trials over time (with structured fields)
 
 ```elixir
-CheironTakeHome.Orchestrator.query("How many lung cancer trials are in each phase?")
+CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrolizumab", "start_year" => 2018, "end_year" => 2024})
 ```
 
 ```json
 {
-  "data": [
-    {"phase": "NA", "trial_count": 4},
-    {"phase": "PHASE2", "trial_count": 3},
-    {"phase": "PHASE3", "trial_count": 1}
-  ],
-  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
-  "type": "bar_chart",
-  "sort": {"field": "phase", "order": "descending"},
-  "encoding": {
-    "x": {"label": "Phase", "type": "categorical", "field": "phase"},
-    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
-  },
-  "title": "Lung Cancer Clinical Trials by Phase"
-}
-```
-
-## Alzheimer's disease trials by recruitment status
-
-```elixir
-CheironTakeHome.Orchestrator.query("What's the recruitment status of Alzheimer's disease trials?")
-```
-
-```json
-{
-  "data": [
-    {"status": "COMPLETED", "trial_count": 7},
-    {"status": "RECRUITING", "trial_count": 3}
-  ],
-  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
-  "type": "bar_chart",
-  "sort": {"field": "status", "order": "descending"},
-  "encoding": {
-    "x": {"label": "Status", "type": "categorical", "field": "status"},
-    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
-  },
-  "title": "Alzheimer's Disease Clinical Trials by Status"
-}
-```
-
-## Breast cancer trial activity over time
-
-```elixir
-CheironTakeHome.Orchestrator.query("How has clinical trial activity for breast cancer changed over time?")
-```
-
-```json
-{
-  "data": [
-    {"count": 1, "period": "1987"},
-    {"count": 1, "period": "1994"},
-    {"count": 1, "period": "1996"},
-    {"count": 2, "period": "1997"},
-    {"count": 2, "period": "1999"},
-    {"count": 2, "period": "2000"},
-    {"count": 1, "period": "2001"},
-    {"count": 2, "period": "2002"},
-    {"count": 1, "period": "2003"},
-    {"count": 1, "period": "2004"},
-    {"count": 4, "period": "2005"},
-    {"count": 2, "period": "2006"},
-    {"count": 3, "period": "2009"},
-    {"count": 2, "period": "2010"},
-    {"count": 3, "period": "2011"},
-    {"count": 4, "period": "2012"},
-    {"count": 4, "period": "2013"},
-    {"count": 2, "period": "2014"},
-    {"count": 6, "period": "2015"},
-    {"count": 10, "period": "2016"},
-    {"count": 6, "period": "2017"},
-    {"count": 4, "period": "2018"},
-    {"count": 4, "period": "2019"},
-    {"count": 4, "period": "2020"},
-    {"count": 5, "period": "2021"},
-    {"count": 3, "period": "2022"},
-    {"count": 4, "period": "2023"},
-    {"count": 6, "period": "2024"},
-    {"count": 7, "period": "2025"},
-    {"count": 2, "period": "2026"}
-  ],
-  "meta": {"source": "clinicaltrials.gov", "date_field": "startDateStruct", "total_studies": 100},
   "type": "time_series",
+  "title": "Pembrolizumab Clinical Trials Over Time",
   "encoding": {
-    "x": {"label": "Year", "type": "temporal", "field": "period", "granularity": "year"},
-    "y": {"label": "Number of Trials Started", "type": "quantitative", "field": "count"}
+    "x": {"field": "period", "label": "Year", "type": "temporal", "granularity": "year"},
+    "y": {"field": "count", "label": "Number of Trials Started", "type": "quantitative"}
   },
-  "title": "Breast Cancer Clinical Trials Over Time"
+  "data": [
+    {
+      "period": "2018",
+      "count": 47,
+      "citations": [
+        {"nct_id": "NCT03391973", "excerpt": "Pembrolizumab in Patients With Poor-Prognosis Carcinoma of Unknown Primary Site (CUP)"},
+        {"nct_id": "NCT03436056", "excerpt": "PembRolIzuMab and Stereotactic Body Radiotherapy In Metastatic Non-small-cell lunG Cancer Patients"},
+        {"nct_id": "NCT03447678", "excerpt": "Pembrolizumab in First Line Treatment of Advanced NSCLC Patients With PD-L1 Low Tumors."},
+        "... 44 more citations"
+      ]
+    },
+    {
+      "period": "2019",
+      "count": 33,
+      "citations": [
+        {"nct_id": "NCT03776864", "excerpt": "Umbralisib and Pembrolizumab in Treating Patients With Relapsed or Refractory Classical Hodgkin Lymphoma"},
+        {"nct_id": "NCT04083599", "excerpt": "GEN1042 Safety Trial and Anti-tumor Activity in Participants With Malignant Solid Tumors"},
+        "... 31 more citations"
+      ]
+    },
+    {
+      "period": "2020",
+      "count": 48,
+      "citations": [
+        {"nct_id": "NCT04222972", "excerpt": "A Study of Pralsetinib Versus Standard of Care for First-Line Treatment of Advanced Non-Small Cell Lung Cancer (NSCLC)"},
+        {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
+        "... 46 more citations"
+      ]
+    },
+    {"period": "2021", "count": 43, "citations": ["... 43 citations"]},
+    {"period": "2022", "count": 45, "citations": ["... 45 citations"]},
+    {"period": "2023", "count": 47, "citations": ["... 47 citations"]},
+    {"period": "2024", "count": 57, "citations": ["... 57 citations"]}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 500, "date_field": "startDateStruct"}
 }
 ```
 
-## Immunotherapy trials by phase
+## Breast cancer trials by phase (with structured fields)
 
 ```elixir
-CheironTakeHome.Orchestrator.query("What phases are immunotherapy trials in?")
+CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast cancer"})
 ```
 
 ```json
 {
-  "data": [
-    {"phase": "PHASE2", "trial_count": 7},
-    {"phase": "NA", "trial_count": 2},
-    {"phase": "PHASE1", "trial_count": 1},
-    {"phase": "PHASE3", "trial_count": 1}
-  ],
-  "meta": {"source": "clinicaltrials.gov", "total_studies": 10},
   "type": "bar_chart",
-  "sort": {"field": "phase", "order": "descending"},
+  "title": "Breast Cancer Clinical Trials by Phase",
   "encoding": {
-    "x": {"label": "Phase", "type": "categorical", "field": "phase"},
-    "y": {"label": "Number of Trials", "type": "quantitative", "field": "trial_count"}
+    "x": {"field": "phase", "label": "Phase", "type": "categorical"},
+    "y": {"field": "trial_count", "label": "Number of Trials", "type": "quantitative"}
   },
-  "title": "Immunotherapy Clinical Trials by Phase"
+  "data": [
+    {
+      "phase": "PHASE2",
+      "trial_count": 19,
+      "citations": [
+        {"nct_id": "NCT00019812", "excerpt": "Monoclonal Antibody Plus Chemotherapy in Treating Patients With Metastatic Breast Cancer That Overexpresses HER2"},
+        {"nct_id": "NCT01413828", "excerpt": "Trastuzumab Administered Concurrently or Sequentially to Anthracycline-containing Adjuvant Regimen for Breast Cancer"},
+        {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
+        "... 16 more citations"
+      ]
+    },
+    {
+      "phase": "PHASE1",
+      "trial_count": 13,
+      "citations": [
+        {"nct_id": "NCT04454528", "excerpt": "BreastVAX: Radiation Boost to Enhance Immune Checkpoint Blockade Therapy"},
+        {"nct_id": "NCT02882581", "excerpt": "Metformin in Breast Cancer, Visualized With Positron Emission Tomography"},
+        "... 11 more citations"
+      ]
+    },
+    {"phase": "NA", "trial_count": 12, "citations": ["... 12 citations"]},
+    {"phase": "PHASE3", "trial_count": 4, "citations": ["... 4 citations"]},
+    {"phase": "PHASE4", "trial_count": 3, "citations": ["... 3 citations"]},
+    {"phase": "EARLY_PHASE1", "trial_count": 2, "citations": ["... 2 citations"]}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 50},
+  "sort": {"field": "phase", "order": "descending"}
+}
+```
+
+## Lung cancer phase 3 trials by recruitment status (with structured fields)
+
+```elixir
+CheironTakeHome.Orchestrator.query("recruiting status of cancer trials", %{"condition" => "lung cancer", "trial_phase" => "PHASE3"})
+```
+
+```json
+{
+  "type": "bar_chart",
+  "title": "Lung Cancer Clinical Trials by Status",
+  "encoding": {
+    "x": {"field": "status", "label": "Status", "type": "categorical"},
+    "y": {"field": "trial_count", "label": "Number of Trials", "type": "quantitative"}
+  },
+  "data": [
+    {
+      "status": "COMPLETED",
+      "trial_count": 24,
+      "citations": [
+        {"nct_id": "NCT00312819", "excerpt": "Initial Assessment of the Effect of the Addition of Disulfiram (Antabuse) to Standard Chemotherapy in Lung Cancer"},
+        {"nct_id": "NCT02538666", "excerpt": "An Investigational Immuno-therapy Study of Nivolumab, or Nivolumab in Combination With Ipilimumab, or Placebo in Patients With Extensive-Stage Disease Small Cell Lung Cancer (ED-SCLC)"},
+        {"nct_id": "NCT00003831", "excerpt": "Lymph Node Removal in Treating Patients With Stage I or Stage II Non-small Cell Lung Cancer"},
+        "... 21 more citations"
+      ]
+    },
+    {"status": "UNKNOWN", "trial_count": 9, "citations": ["... 9 citations"]},
+    {"status": "RECRUITING", "trial_count": 7, "citations": ["... 7 citations"]},
+    {"status": "ACTIVE_NOT_RECRUITING", "trial_count": 5, "citations": ["... 5 citations"]},
+    {"status": "TERMINATED", "trial_count": 2, "citations": ["... 2 citations"]},
+    {"status": "WITHDRAWN", "trial_count": 2, "citations": ["... 2 citations"]},
+    {"status": "NOT_YET_RECRUITING", "trial_count": 1, "citations": ["... 1 citation"]}
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 50},
+  "sort": {"field": "status", "order": "descending"}
 }
 ```
 
@@ -130,63 +141,128 @@ CheironTakeHome.Orchestrator.query("What drugs are used to treat lung cancer?")
 
 ```json
 {
-  "data": [
-    {"source": "Non Small Cell Lung Cancer", "target": "Atezolizumab", "weight": 2},
-    {"source": "Solid Tumor Cancer", "target": "Dexamethasone", "weight": 2},
-    {"source": "Lung Cancer", "target": "Radiation Therapy", "weight": 2},
-    {"source": "Lung Cancer", "target": "Standard Care", "weight": 2},
-    {"source": "Lung Cancer", "target": "Irinotecan Hydrochloride", "weight": 2},
-    {"source": "Non Small Cell Lung Cancer", "target": "Entrectinib", "weight": 1},
-    {"source": "Non Small Cell Lung Cancer", "target": "Lapatinib", "weight": 1},
-    {"source": "Non Small Cell Lung Cancer", "target": "Alectinib", "weight": 1},
-    {"source": "Adenocarcinoma", "target": "Pemetrexed", "weight": 1},
-    {"source": "Breast Cancer", "target": "Atezolizumab", "weight": 1}
-  ],
-  "meta": {
-    "source": "clinicaltrials.gov",
-    "total_studies": 100,
-    "edge_type": "condition_to_intervention"
-  },
   "type": "network_graph",
+  "title": "Lung Cancer Clinical Trials Treatment Network",
   "encoding": {
-    "source": {"label": "Condition", "type": "categorical", "field": "source"},
-    "target": {"label": "Intervention", "type": "categorical", "field": "target"},
-    "weight": {"label": "Number of Trials", "type": "quantitative", "field": "weight"}
+    "source": {"field": "source", "label": "Condition", "type": "categorical"},
+    "target": {"field": "target", "label": "Intervention", "type": "categorical"},
+    "weight": {"field": "weight", "label": "Number of Trials", "type": "quantitative"}
   },
-  "title": "Lung Cancer Clinical Trials Treatment Network"
+  "data": [
+    {
+      "source": "Lung Cancer",
+      "target": "radiation therapy",
+      "weight": 7,
+      "citations": [
+        {"nct_id": "NCT00072527", "excerpt": "Cisplatin and Irinotecan Followed by Carboplatin, Etoposide, and Radiation Therapy in Treating Patients With Limited-Stage Small Cell Lung Cancer"},
+        {"nct_id": "NCT00238251", "excerpt": "Radiation Therapy Combined With Either Gefitinib or Temozolomide in Pats With NSCLC and Brain Metastases"},
+        {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
+        "... 4 more citations"
+      ]
+    },
+    {
+      "source": "Lung Cancer",
+      "target": "carboplatin",
+      "weight": 6,
+      "citations": [
+        {"nct_id": "NCT00072527", "excerpt": "Cisplatin and Irinotecan Followed by Carboplatin, Etoposide, and Radiation Therapy in Treating Patients With Limited-Stage Small Cell Lung Cancer"},
+        {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
+        "... 4 more citations"
+      ]
+    },
+    {
+      "source": "Lung Cancer",
+      "target": "paclitaxel",
+      "weight": 5,
+      "citations": [
+        {"nct_id": "NCT00003235", "excerpt": "Combination Chemotherapy Plus Radiation Therapy in Treating Patients With Stage III Non-small Cell Lung Cancer"},
+        {"nct_id": "NCT00278148", "excerpt": "Erlotinib, Paclitaxel, and Carboplatin Combined With Radiation Therapy for Stage III Non-Small Cell Lung Cancer"},
+        "... 3 more citations"
+      ]
+    },
+    {"source": "Carcinoma, Non-Small-Cell Lung", "target": "Docetaxel", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Carcinoma, Non-Small-Cell Lung", "target": "Erlotinib", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Carcinoma, Non-Small-Cell Lung", "target": "Pemetrexed", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Lung Cancer", "target": "Nivolumab", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Lung Cancer", "target": "cisplatin", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Lung Cancer", "target": "Carboplatin", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Advanced Non-Small Cell Lung Cancer", "target": "Adagrasib", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Non Small Cell Lung Cancer", "target": "Atezolizumab", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "Non-small Cell Lung Cancer", "target": "Pembrolizumab", "weight": 3, "citations": ["... 3 citations"]},
+    "... additional edges"
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 500, "edge_type": "condition_to_intervention"}
 }
 ```
 
-## CRISPR clinical trials over time
+## Tuberculosis treatment network
 
 ```elixir
-CheironTakeHome.Orchestrator.query("When did CRISPR clinical trials start ramping up?")
+CheironTakeHome.Orchestrator.query("What drugs are used to treat tuberculosis?")
 ```
 
 ```json
 {
-  "data": [
-    {"count": 3, "period": "2016"},
-    {"count": 2, "period": "2017"},
-    {"count": 8, "period": "2018"},
-    {"count": 5, "period": "2019"},
-    {"count": 6, "period": "2020"},
-    {"count": 11, "period": "2021"},
-    {"count": 11, "period": "2022"},
-    {"count": 13, "period": "2023"},
-    {"count": 14, "period": "2024"},
-    {"count": 16, "period": "2025"},
-    {"count": 8, "period": "2026"},
-    {"count": 2, "period": "2027"},
-    {"count": 1, "period": "2028"}
-  ],
-  "meta": {"source": "clinicaltrials.gov", "date_field": "startDateStruct", "total_studies": 100},
-  "type": "time_series",
+  "type": "network_graph",
+  "title": "Tuberculosis Clinical Trials Treatment Network",
   "encoding": {
-    "x": {"label": "Year", "type": "temporal", "field": "period", "granularity": "year"},
-    "y": {"label": "Number of Trials Started", "type": "quantitative", "field": "count"}
+    "source": {"field": "source", "label": "Condition", "type": "categorical"},
+    "target": {"field": "target", "label": "Intervention", "type": "categorical"},
+    "weight": {"field": "weight", "label": "Number of Trials", "type": "quantitative"}
   },
-  "title": "Crispr Clinical Trials Over Time"
+  "data": [
+    {
+      "source": "Tuberculosis",
+      "target": "Placebo",
+      "weight": 25,
+      "citations": [
+        {"nct_id": "NCT03199313", "excerpt": "Study to Evaluate the Safety, Tolerability, and Pharmacokinetics of Sutezolid"},
+        {"nct_id": "NCT04472897", "excerpt": "A Study to Evaluate Safety, Tolerability and Pharmacokinetics of GSK2556286 in Healthy Adult Participants"},
+        {"nct_id": "NCT00871949", "excerpt": "Safety, Tolerability And Pharmacokinetics Study Of Single Doses Of PNU-100480 In Healthy Adults"},
+        "... 22 more citations"
+      ]
+    },
+    {
+      "source": "Tuberculosis",
+      "target": "Isoniazid",
+      "weight": 16,
+      "citations": [
+        {"nct_id": "NCT03334734", "excerpt": "Phase 2a Study of PBTZ169"},
+        {"nct_id": "NCT02735590", "excerpt": "The Correlate of Risk Targeted Intervention Study"},
+        {"nct_id": "NCT00000636", "excerpt": "Prophylaxis Against Tuberculosis (TB) in Patients With HIV Infection and Confirmed Latent Tuberculous Infection"},
+        "... 13 more citations"
+      ]
+    },
+    {
+      "source": "Tuberculosis",
+      "target": "Rifampin",
+      "weight": 7,
+      "citations": [
+        {"nct_id": "NCT00000636", "excerpt": "Prophylaxis Against Tuberculosis (TB) in Patients With HIV Infection and Confirmed Latent Tuberculous Infection"},
+        {"nct_id": "NCT00023374", "excerpt": "TBTC Study 24: Intermittent Treatment of TB With Isoniazid Resistance or Intolerance"},
+        {"nct_id": "NCT04768231", "excerpt": "Rifampicin at High Dose for Difficult-to-Treat Tuberculosis"},
+        "... 4 more citations"
+      ]
+    },
+    {"source": "Tuberculosis", "target": "BCG", "weight": 6, "citations": ["... 6 citations"]},
+    {"source": "Tuberculosis, Pulmonary", "target": "Placebo", "weight": 6, "citations": ["... 6 citations"]},
+    {"source": "Tuberculosis", "target": "MVA85A", "weight": 5, "citations": ["... 5 citations"]},
+    {"source": "Tuberculosis, Pulmonary", "target": "Rifampicin", "weight": 5, "citations": ["... 5 citations"]},
+    {"source": "Tuberculosis", "target": "Pyrazinamide", "weight": 5, "citations": ["... 5 citations"]},
+    {"source": "Tuberculosis, Pulmonary", "target": "Isoniazid", "weight": 5, "citations": ["... 5 citations"]},
+    {"source": "Tuberculosis, Pulmonary", "target": "Ethambutol", "weight": 5, "citations": ["... 5 citations"]},
+    {"source": "Tuberculosis", "target": "Rifampicin", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Tuberculosis", "target": "Rifapentine", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Tuberculosis", "target": "Moxifloxacin", "weight": 4, "citations": ["... 4 citations"]},
+    {"source": "Tuberculosis", "target": "Bedaquiline", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "Tuberculosis", "target": "Linezolid", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "Tuberculosis, Multidrug-Resistant", "target": "Linezolid", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "Tuberculosis, Multidrug-Resistant", "target": "Levofloxacin", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "HIV Infections", "target": "efavirenz", "weight": 3, "citations": ["... 3 citations"]},
+    {"source": "HIV Infections", "target": "Rifampin", "weight": 3, "citations": ["... 3 citations"]},
+    "... additional edges"
+  ],
+  "meta": {"source": "clinicaltrials.gov", "total_studies": 500, "edge_type": "condition_to_intervention"}
 }
 ```
 
@@ -210,7 +286,7 @@ The server starts on `http://localhost:4000`. You can also query directly from a
 
 ```bash
 iex -S mix phx.server
-iex> CheironTakeHome.Orchestrator.query("How many lung cancer trials are in each phase?")
+iex> CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast cancer"})
 ```
 
 ## Configuration
