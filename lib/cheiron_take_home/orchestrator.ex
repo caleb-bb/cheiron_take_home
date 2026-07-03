@@ -15,7 +15,7 @@ defmodule CheironTakeHome.Orchestrator do
   def query(query_string, structured_fields)
       when is_binary(query_string) and query_string != "" and is_map(structured_fields) do
     query_plan_result =
-      case maybe_skip_llm(query_string, structured_fields) do
+      case CheironTakeHome.QueryClassifier.classify(query_string, structured_fields) do
         {:ok, plan} -> {:ok, plan}
         :no_match -> CheironTakeHome.LLM.interpret(query_string)
       end
@@ -29,46 +29,6 @@ defmodule CheironTakeHome.Orchestrator do
     else
       {:error, reason} -> {:error, reason}
       other -> {:error, {:unexpected, other}}
-    end
-  end
-
-  @deterministic_plan_base %{
-    viz_type: nil,
-    query_params: %{},
-    group_by: nil,
-    time_granularity: nil,
-    edge_type: nil,
-    color_by: nil
-  }
-
-  defp maybe_skip_llm(query_string, structured_fields) do
-    q = String.downcase(query_string)
-    has_condition = is_binary(structured_fields["condition"])
-    has_drug = is_binary(structured_fields["drug_name"])
-
-    cond do
-      has_condition and String.contains?(q, "by phase") ->
-        {:ok, %{@deterministic_plan_base | viz_type: "bar_chart", group_by: "phase"}}
-
-      has_condition and String.contains?(q, "by status") ->
-        {:ok, %{@deterministic_plan_base | viz_type: "bar_chart", group_by: "status"}}
-
-      has_drug and String.contains?(q, "over time") ->
-        {:ok, %{@deterministic_plan_base | viz_type: "time_series", time_granularity: "yearly"}}
-
-      has_condition and (String.contains?(q, "drug") or String.contains?(q, "treat")) ->
-        {:ok,
-         %{
-           @deterministic_plan_base
-           | viz_type: "network_graph",
-             edge_type: "condition_to_intervention"
-         }}
-
-      has_condition and (String.contains?(q, "individual") or String.contains?(q, "enrollment")) ->
-        {:ok, %{@deterministic_plan_base | viz_type: "scatter_plot"}}
-
-      true ->
-        :no_match
     end
   end
 
