@@ -47,6 +47,7 @@ defmodule CheironTakeHome.Munger do
         get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])
       end)
       |> Enum.reject(&(is_nil(&1) or &1 == ""))
+      |> filter_by_year_range(intent)
       |> Enum.map(&extract_period(&1, granularity))
       |> Enum.frequencies()
       |> Enum.map(fn {period, count} ->
@@ -139,6 +140,30 @@ defmodule CheironTakeHome.Munger do
       nil -> []
       status -> [status]
     end
+  end
+
+  defp filter_by_year_range(date_strings, intent) do
+    date_strings
+    |> maybe_filter_start(intent[:start_year])
+    |> maybe_filter_end(intent[:end_year])
+  end
+
+  defp maybe_filter_start(dates, nil), do: dates
+
+  defp maybe_filter_start(dates, start_year) do
+    Enum.filter(dates, fn date_str ->
+      {year, _} = Integer.parse(String.slice(date_str, 0, 4))
+      year >= start_year
+    end)
+  end
+
+  defp maybe_filter_end(dates, nil), do: dates
+
+  defp maybe_filter_end(dates, end_year) do
+    Enum.filter(dates, fn date_str ->
+      {year, _} = Integer.parse(String.slice(date_str, 0, 4))
+      year <= end_year
+    end)
   end
 
   defp extract_period(date_str, :year), do: String.slice(date_str, 0, 4)

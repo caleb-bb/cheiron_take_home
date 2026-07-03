@@ -6,8 +6,18 @@ defmodule CheironTakeHome.Orchestrator do
   @default_time_series_page_size 100
 
   def query(query_string) when is_binary(query_string) and query_string != "" do
+    query(query_string, %{})
+  end
+
+  def query(""), do: {:error, :empty_query}
+  def query(nil), do: {:error, :empty_query}
+
+  def query(query_string, structured_fields)
+      when is_binary(query_string) and query_string != "" and is_map(structured_fields) do
     with {:ok, query_plan} <- CheironTakeHome.LLM.interpret(query_string),
          {api_params, viz_intent} <- split_query_plan(query_plan),
+         api_params = merge_structured_fields(api_params, structured_fields),
+         viz_intent = merge_year_filters(viz_intent, structured_fields),
          :ok <- validate_search_params(api_params),
          api_params = ensure_page_size(api_params, viz_intent),
          {:ok, studies} <- CheironTakeHome.ClinicalTrials.search(api_params),
@@ -18,9 +28,6 @@ defmodule CheironTakeHome.Orchestrator do
       other -> {:error, {:unexpected, other}}
     end
   end
-
-  def query(""), do: {:error, :empty_query}
-  def query(nil), do: {:error, :empty_query}
 
   @param_keys %{
     "query_cond" => :query_cond,
@@ -81,6 +88,28 @@ defmodule CheironTakeHome.Orchestrator do
     if Enum.any?(@search_keys, &Map.has_key?(api_params, &1)),
       do: :ok,
       else: {:error, :no_search_terms}
+  end
+
+  @structured_field_mapping %{
+    "condition" => :query_cond,
+    "drug_name" => :query_intr,
+    "trial_phase" => :filter_phase,
+    "sponsor" => :query_term
+  }
+
+  defp merge_structured_fields(api_params, structured_fields) do
+    Enum.reduce(@structured_field_mapping, api_params, fn {user_key, api_key}, acc ->
+      case structured_fields[user_key] do
+        nil -> acc
+        value -> Map.put(acc, api_key, value)
+      end
+    end)
+  end
+
+  defp merge_year_filters(viz_intent, structured_fields) do
+    viz_intent
+    |> maybe_put(:start_year, structured_fields["start_year"])
+    |> maybe_put(:end_year, structured_fields["end_year"])
   end
 
   defp maybe_put(map, _key, nil), do: map
