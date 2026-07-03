@@ -6,6 +6,9 @@
 CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrolizumab", "start_year" => 2018, "end_year" => 2024})
 ```
 
+<details>
+<summary>Response JSON (time_series, 7 periods, 234 citations) — click to expand</summary>
+
 ```json
 {
   "data": [
@@ -1011,11 +1014,16 @@ CheironTakeHome.Orchestrator.query("trials over time", %{"drug_name" => "Pembrol
 }
 ```
 
+</details>
+
 ## Breast cancer trials by phase (with structured fields)
 
 ```elixir
 CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast cancer"})
 ```
+
+<details>
+<summary>Response JSON (bar_chart, 4 phases, 41 citations) — click to expand</summary>
 
 ```json
 {
@@ -1234,11 +1242,16 @@ CheironTakeHome.Orchestrator.query("trials by phase", %{"condition" => "breast c
 }
 ```
 
+</details>
+
 ## Lung cancer phase 3 trials by recruitment status (with structured fields)
 
 ```elixir
 CheironTakeHome.Orchestrator.query("recruiting status of cancer trials", %{"condition" => "lung cancer", "trial_phase" => "PHASE3"})
 ```
+
+<details>
+<summary>Response JSON (bar_chart, 7 statuses, 50 citations) — click to expand</summary>
 
 ```json
 {
@@ -1511,11 +1524,16 @@ CheironTakeHome.Orchestrator.query("recruiting status of cancer trials", %{"cond
 }
 ```
 
+</details>
+
 ## Progeria treatment network
 
 ```elixir
 CheironTakeHome.Orchestrator.query("What drugs treat progeria?")
 ```
+
+<details>
+<summary>Response JSON (network_graph, 16 edges, 10 studies) — click to expand</summary>
 
 ```json
 {
@@ -1740,11 +1758,16 @@ CheironTakeHome.Orchestrator.query("What drugs treat progeria?")
 }
 ```
 
+</details>
+
 ## Glioblastoma phase 3 trials by enrollment (scatter plot with color)
 
 ```elixir
 CheironTakeHome.Orchestrator.query("individual trial enrollment for glioblastoma colored by status", %{"condition" => "glioblastoma", "trial_phase" => "PHASE3"})
 ```
+
+<details>
+<summary>Response JSON (scatter_plot, 115 data points, color_by status) — click to expand</summary>
 
 ```json
 {
@@ -2580,6 +2603,8 @@ CheironTakeHome.Orchestrator.query("individual trial enrollment for glioblastoma
   "title": "Glioblastoma Clinical Trials by Enrollment"
 }
 ```
+
+</details>
 
 # Setup (AI generated)
 
