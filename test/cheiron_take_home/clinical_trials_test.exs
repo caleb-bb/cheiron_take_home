@@ -68,5 +68,45 @@ defmodule CheironTakeHome.ClinicalTrialsTest do
 
       assert {:error, _reason} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
     end
+
+    test "returns error on 400 bad request" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 400, body: "`filter.phase` is unknown parameter"}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert reason =~ "400"
+    end
+
+    test "returns error on 404 not found" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 404, body: "Not Found"}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert reason =~ "404"
+    end
+
+    test "returns error on 500 internal server error" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 500, body: "Internal Server Error"}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert reason =~ "500"
+    end
+
+    test "returns error on 503 service unavailable" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 503, body: "Service Unavailable"}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.ClinicalTrials.search(%{query_cond: "anything"})
+      assert reason =~ "503"
+    end
   end
 end

@@ -75,5 +75,45 @@ defmodule CheironTakeHome.LLMTest do
 
       assert {:error, _reason} = CheironTakeHome.LLM.interpret("anything")
     end
+
+    test "returns error on 400 bad request" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 400, body: %{"error" => %{"message" => "Invalid request"}}}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.LLM.interpret("anything")
+      assert reason =~ "400"
+    end
+
+    test "returns error on 401 unauthorized" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 401, body: %{"error" => %{"message" => "Invalid API key"}}}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.LLM.interpret("anything")
+      assert reason =~ "401"
+    end
+
+    test "returns error on 429 rate limited" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 429, body: %{"error" => %{"message" => "Rate limit exceeded"}}}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.LLM.interpret("anything")
+      assert reason =~ "429"
+    end
+
+    test "returns error on 500 internal server error" do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{status: 500, body: %{"error" => %{"message" => "Server error"}}}}
+      end)
+
+      assert {:error, %{reason: reason}} = CheironTakeHome.LLM.interpret("anything")
+      assert reason =~ "500"
+    end
   end
 end

@@ -15,12 +15,8 @@ defmodule CheironTakeHome.Orchestrator do
   def query(query_string, structured_fields)
       when is_binary(query_string) and query_string != "" and is_map(structured_fields) do
     with {:ok, query_plan} <- CheironTakeHome.LLM.interpret(query_string),
-         {api_params, viz_intent} <- split_query_plan(query_plan),
-         api_params = merge_structured_fields(api_params, structured_fields),
-         viz_intent = update_subject(viz_intent, api_params),
-         viz_intent = merge_year_filters(viz_intent, structured_fields),
+         {api_params, viz_intent} = build_intent(query_plan, structured_fields),
          :ok <- validate_search_params(api_params),
-         api_params = ensure_page_size(api_params, viz_intent),
          {:ok, studies} <- CheironTakeHome.ClinicalTrials.search(api_params),
          {:ok, viz_spec} <- CheironTakeHome.Munger.build(studies, viz_intent) do
       {:ok, viz_spec}
@@ -28,6 +24,23 @@ defmodule CheironTakeHome.Orchestrator do
       {:error, reason} -> {:error, reason}
       other -> {:error, {:unexpected, other}}
     end
+  end
+
+  defp build_intent(query_plan, structured_fields) do
+    {base_api_params, base_viz_intent} = split_query_plan(query_plan)
+
+    merged_api_params =
+      base_api_params
+      |> merge_structured_fields(structured_fields)
+
+    final_viz_intent =
+      base_viz_intent
+      |> update_subject(merged_api_params)
+      |> merge_year_filters(structured_fields)
+
+    final_api_params = ensure_page_size(merged_api_params, final_viz_intent)
+
+    {final_api_params, final_viz_intent}
   end
 
   @param_keys %{

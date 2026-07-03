@@ -41,6 +41,9 @@ defmodule CheironTakeHome.LLM do
     }}
   end
 
+  defp handle_response({:ok, %{status: status, body: body}}),
+    do: {:error, %{reason: "LLM API returned #{status}: #{inspect(body)}"}}
+
   defp handle_response({:error, reason}), do: {:error, reason}
 
   defp http_client, do: Application.get_env(:cheiron_take_home, :http_client)
