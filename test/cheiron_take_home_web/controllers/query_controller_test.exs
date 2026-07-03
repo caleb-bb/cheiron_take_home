@@ -72,5 +72,64 @@ defmodule CheironTakeHomeWeb.QueryControllerTest do
       conn = post(conn, ~p"/api/query", %{"query" => "anything"})
       assert %{"error" => _} = json_response(conn, 422)
     end
+
+    test "passes structured fields through to the pipeline", %{conn: conn} do
+      CheironTakeHome.MockHttpClient
+      |> expect(:request, fn _opts ->
+        {:ok, %{
+          status: 200,
+          body: %{
+            "choices" => [
+              %{
+                "message" => %{
+                  "content" => Jason.encode!(%{
+                    "viz_type" => "bar_chart",
+                    "query_params" => %{"query_cond" => "cancer"},
+                    "group_by" => "phase"
+                  })
+                }
+              }
+            ]
+          }
+        }}
+      end)
+      |> expect(:request, fn opts ->
+        params = opts[:params]
+        assert params["query.intr"] == "Pembrolizumab"
+
+        {:ok, %{
+          status: 200,
+          body: %{
+            "studies" => [
+              %{
+                "protocolSection" => %{
+                  "designModule" => %{"phases" => ["PHASE3"]},
+                  "statusModule" => %{"overallStatus" => "RECRUITING"}
+                }
+              }
+            ]
+          }
+        }}
+      end)
+
+      conn =
+        post(conn, ~p"/api/query", %{
+          "query" => "trials by phase",
+          "drug_name" => "Pembrolizumab"
+        })
+
+      resp = json_response(conn, 200)
+      assert %{"visualization" => _} = resp
+    end
+
+    test "returns 400 for invalid start_year", %{conn: conn} do
+      conn =
+        post(conn, ~p"/api/query", %{
+          "query" => "trials over time",
+          "start_year" => "banana"
+        })
+
+      assert %{"error" => _} = json_response(conn, 400)
+    end
   end
 end

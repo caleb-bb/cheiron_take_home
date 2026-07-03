@@ -359,6 +359,84 @@ defmodule CheironTakeHome.MungerTest do
     end
   end
 
+  # --- Year Range Filtering ---
+
+  describe "build/2 with start_year filtering" do
+    property "no output period is before start_year" do
+      check all(
+              studies <- studies_gen(),
+              start_year <- integer(2015..2020)
+            ) do
+        viz_intent = %{viz_type: :time_series, time_granularity: :year, start_year: start_year}
+        result = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        case result do
+          {:ok, viz_spec} ->
+            Enum.each(viz_spec.data, fn point ->
+              {period_year, _} = Integer.parse(point["period"])
+              assert period_year >= start_year,
+                     "Period #{point["period"]} is before start_year #{start_year}"
+            end)
+
+          {:error, :empty_result} ->
+            :ok
+        end
+      end
+    end
+
+    property "no output period is after end_year" do
+      check all(
+              studies <- studies_gen(),
+              end_year <- integer(2020..2025)
+            ) do
+        viz_intent = %{viz_type: :time_series, time_granularity: :year, end_year: end_year}
+        result = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        case result do
+          {:ok, viz_spec} ->
+            Enum.each(viz_spec.data, fn point ->
+              {period_year, _} = Integer.parse(point["period"])
+              assert period_year <= end_year,
+                     "Period #{point["period"]} is after end_year #{end_year}"
+            end)
+
+          {:error, :empty_result} ->
+            :ok
+        end
+      end
+    end
+
+    property "year range filtering preserves count accuracy" do
+      check all(studies <- studies_gen()) do
+        start_year = 2018
+        end_year = 2022
+        viz_intent = %{viz_type: :time_series, time_granularity: :year, start_year: start_year, end_year: end_year}
+        result = CheironTakeHome.Munger.build(studies, viz_intent)
+
+        expected_count =
+          studies
+          |> Enum.count(fn s ->
+            date_str = get_in(s, ["protocolSection", "statusModule", "startDateStruct", "date"])
+            if date_str do
+              {year, _} = Integer.parse(String.slice(date_str, 0, 4))
+              year >= start_year and year <= end_year
+            else
+              false
+            end
+          end)
+
+        case result do
+          {:ok, viz_spec} ->
+            output_total = viz_spec.data |> Enum.map(& &1["count"]) |> Enum.sum()
+            assert output_total == expected_count
+
+          {:error, :empty_result} ->
+            assert expected_count == 0
+        end
+      end
+    end
+  end
+
   # --- Network Graph Properties (condition_to_intervention) ---
 
   describe "build/2 with network_graph viz_type (condition_to_intervention)" do
